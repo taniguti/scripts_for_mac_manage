@@ -11,9 +11,11 @@ if [ $OS_MAJOR_VERSION -gt 6 ]; then
         RESULT='N/A' 
     else
         BUILD=`serverinfo --buildversion`
-        IsConfigured=`serverinfo --configured > /dev/null; echo $?` 
-        if [ $IsConfigured -ne 0 ]; then
-            BUILD="$BUILD (not configured as Server)"
+        if [ ${BUILD:='N/A'} != 'N/A' ]; then
+            IsConfigured=`serverinfo --configured > /dev/null; echo $?`
+            if [ $IsConfigured -ne 0 ]; then
+                BUILD="$BUILD (not configured as Server)"
+            fi
         fi
         RESULT=$BUILD
     fi
