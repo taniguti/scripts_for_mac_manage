@@ -1,0 +1,27 @@
+#!/bin/bash
+
+OS_PRODUCT_NAME=`/usr/bin/sw_vers -productName`
+OS_PRODUCT_VERSION=`/usr/bin/sw_vers -productVersion`
+OS_PRODUCT_BUILD=`/usr/bin/sw_vers -buildVersion`
+OS_MAJOR_VERSION=`/usr/bin/sw_vers -productVersion | awk -F. '{print $2}'`
+OS_MINOR_VERSION=`/usr/bin/sw_vers -productVersion | awk -F. '{print $3}'`
+
+if [ $OS_MAJOR_VERSION -gt 6 ]; then
+    if [ ! -d /Applications/Server.app ]; then
+        RESULT='N/A' 
+    else
+        VERSION=`serverinfo --shortversion`
+        IsConfigured=`serverinfo --configured > /dev/null; echo $?` 
+        if [ $IsConfigured -ne 0 ]; then
+            VERSION="$VERSION (not configured as Server)"
+        fi
+        RESULT=$VERSION
+    fi
+else
+        if [ $OS_PRODUCT_NAME = "Mac OS X Server" ]; then
+            RESULT=$OS_PRODUCT_VERSION
+        else
+            RESULT='N/A' 
+        fi
+fi
+echo $RESULT
