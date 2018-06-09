@@ -2,9 +2,7 @@
 
 OS_PRODUCT_NAME=`/usr/bin/sw_vers -productName`
 OS_PRODUCT_VERSION=`/usr/bin/sw_vers -productVersion`
-OS_PRODUCT_BUILD=`/usr/bin/sw_vers -buildVersion`
 OS_MAJOR_VERSION=`/usr/bin/sw_vers -productVersion | awk -F. '{print $2}'`
-OS_MINOR_VERSION=`/usr/bin/sw_vers -productVersion | awk -F. '{print $3}'`
 
 if [ $OS_MAJOR_VERSION -gt 6 ]; then
     if [ ! -d /Applications/Server.app ]; then
