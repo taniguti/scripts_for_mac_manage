@@ -11,9 +11,11 @@ if [ $OS_MAJOR_VERSION -gt 6 ]; then
         RESULT='N/A' 
     else
         VERSION=`serverinfo --shortversion`
-        IsConfigured=`serverinfo --configured > /dev/null; echo $?` 
-        if [ $IsConfigured -ne 0 ]; then
-            VERSION="$VERSION (not configured as Server)"
+        if [ ${VERSION:='N/A'} != 'N/A' ]; then
+            IsConfigured=`serverinfo --configured > /dev/null; echo $?`
+            if [ $IsConfigured -ne 0 ]; then
+                VERSION="$VERSION (not configured as Server)"
+            fi
         fi
         RESULT=$VERSION
     fi
