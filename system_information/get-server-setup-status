@@ -18,7 +18,7 @@ if [ $OS_MAJOR_VERSION -gt 6 ]; then
         fi
     fi
 else
-        if [ $OS_PRODUCT_NAME = "Mac OS X Server" ]; then
+        if [ "$OS_PRODUCT_NAME" = "Mac OS X Server" ]; then
             STATUS='yes'
         else
             STATUS='N/A' 
