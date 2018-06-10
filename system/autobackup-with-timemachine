@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -f /Library/Preferences/com.apple.TimeMachine.plist ]; then
+    TMSTATUS=`/usr/libexec/PlistBuddy -c "print AutoBackup" /Library/Preferences/com.apple.TimeMachine.plist`
+fi
+case ${TMSTATUS:-false} in 
+true)
+    echo "On"
+    ;;
+*)
+    echo "Off"
+    ;;
+esac
