@@ -5,9 +5,9 @@ if [ -f /Library/Preferences/com.apple.TimeMachine.plist ]; then
 fi
 case ${TMSTATUS:-false} in 
 true)
-    echo "On"
+    echo "on"
     ;;
 *)
-    echo "Off"
+    echo "off"
     ;;
 esac
