@@ -1,0 +1,4 @@
+#!/bin/bash
+
+OBJECT_NAME=`dsconfigad -show | grep 'Account' | awk '{print $NF}' | tr -d $`
+echo "${OBJECT_NAME:-'N/A'}"
