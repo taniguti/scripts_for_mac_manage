@@ -12,7 +12,6 @@ chmod 755 ${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall
 
 pkgbuild --identifier scripts.for.mac.manage.tools.${SCRIPTNAME}.pkg \
  --nopayload \
- --sign "Developer ID Installer: Takanori TANIGUCHI" \
  --scripts ${WORKDIR}/${SCRIPTNAME}/Scripts ${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg 
 
 mv ${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg $HOME/Desktop
