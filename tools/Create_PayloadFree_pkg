@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ ! -f "$1" ]; then exit 0; fi
+
+WORKDIR=/tmp/`uuidgen`
+SCRIPTNAME=`basename "$1"`
+SERIAL=`date +%Y%m%d-%H%M%S`
+
+mkdir -p ${WORKDIR}/${SCRIPTNAME}/Scripts
+cp "$1" ${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall
+chmod 755 ${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall
+
+pkgbuild --identifier scripts.for.mac.manage.tools.${SCRIPTNAME}.pkg \
+ --nopayload \
+ --sign "Developer ID Installer: Takanori TANIGUCHI" \
+ --scripts ${WORKDIR}/${SCRIPTNAME}/Scripts ${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg 
+
+mv ${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg $HOME/Desktop
+rm -rf ${WORKDIR}
