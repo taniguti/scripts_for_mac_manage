@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $(whoami) != 'root' ]; then
+    doAsRoot='sudo'
+else
+    doAsRoot=''
+fi
+
+shortname="$1"
+passwd="$2"
+
+$doAsRoot sysadminctl -addUser "$shortname" -password "$passwd"
