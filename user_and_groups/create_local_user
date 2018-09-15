@@ -1,5 +1,17 @@
 #!/bin/bash
+#-
+#- Easy to create local user account.
+#- Usage:
+#-  create_local_user user-short-name [password]
+#-
+#-  if password is not given, it will be automatically generated.
+#-  You can find log file in /var/tmp.
+#-
 
+if [ $# -eq 0 ]; then
+    cat $0 | grep ^#- | cut -c 4-
+    exit 0
+fi
 if [ $(whoami) != 'root' ]; then
     doAsRoot='sudo'
 else
@@ -8,5 +20,16 @@ fi
 
 shortname="$1"
 passwd="$2"
+logfile=/var/tmp/${shortname}.info
 
-$doAsRoot sysadminctl -addUser "$shortname" -password "$passwd"
+if [ "${passwd:-X}" = X ] then
+    passwd=$(cat /dev/random | head -1 | base64 | cut -c 4-18)
+fi
+
+$doAsRoot sysadminctl -addUser "$shortname" -password "${passwd}"
+
+touch $logfile
+chmod 440 $logfile
+chown 0:admin $logfile
+echo "$shortname $passwd" > $logfile
+echo "You can get user: $shortname in $logfile."
