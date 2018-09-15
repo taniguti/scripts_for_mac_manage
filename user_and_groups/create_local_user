@@ -22,7 +22,7 @@ shortname="$1"
 passwd="$2"
 logfile=/var/tmp/${shortname}.info
 
-if [ "${passwd:-X}" = X ] then
+if [ "${passwd:-X}" = X ]; then
     passwd=$(cat /dev/random | head -1 | base64 | cut -c 4-18)
 fi
 
