@@ -1,0 +1,45 @@
+#!/bin/bash
+#-
+#- Usage:
+#-   remove_quarantine application_name [application_name ... ]
+#-
+
+if [ $# -eq 0 ]; then
+    cat $0 | grep ^#- | cut -c 4-
+    exit 0
+fi
+
+
+for a in $@
+do
+    if [ -e "$a" ]; then
+        DLAPP="$a"
+    elif [ -e "/Applications/$a" ]; then
+        DLAPP="/Applications/$a"
+    elif [ -e "/Applications/Utilities/$a" ]; then
+        DLAPP="/Applications/Utilities/$a"
+    elif [ -e "$HOME/Applications/$a" ]; then
+        DLAPP="$HOME/Applications/$a"
+    else
+        echo "Not found: $a"
+        continue
+    fi
+
+    if [ -d "$DLAPP" ]; then
+        OWNER=$(ls -ld "$DLAPP" | awk '{print $3}')
+    else
+        OWNER=$(ls -l "$DLAPP" | awk '{print $3}')
+    fi
+    
+    if [ $OWNER = $(whoami) ]; then
+        isMyown=yes
+    else
+        isMyown=no
+    fi
+
+    if [ isMyown = yes ]; then
+        xattr -r -d com.apple.quarantine "${DLAPP}"
+    else
+        sudo xattr -r -d com.apple.quarantine "${DLAPP}"
+    fi
+done
