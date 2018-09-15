@@ -27,7 +27,7 @@ if [ "${passwd:-X}" = X ]; then
     passwd=$(cat /dev/random | head -1 | base64 | cut -c 4-18)
 fi
 
-$doAsRoot sysadminctl -addUser "$shortname" -password "${passwd}" | tee $logfile2
+$doAsRoot sysadminctl -addUser "$shortname" -password "${passwd}" 2>&1 | tee $logfile2
 
 echo "$shortname $passwd" > $logfile1
 $doAsRoot chmod 440 $logfile1
