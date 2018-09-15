@@ -37,7 +37,7 @@ do
         isMyown=no
     fi
 
-    if [ isMyown = yes ]; then
+    if [ $isMyown = yes ]; then
         xattr -r -d com.apple.quarantine "${DLAPP}"
     else
         sudo xattr -r -d com.apple.quarantine "${DLAPP}"
