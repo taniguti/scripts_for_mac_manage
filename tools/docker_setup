@@ -22,6 +22,9 @@ fullpath_to_me=`_readlink "$0"`
 pathtome=$(dirname "$fullpath_to_me")
 dockerapp=/Applications/Docker.app
 
+macuser=$1
+macuser=stduser
+
 ${pathtome}/remove_quarantine $dockerapp
 
 dockerbindir="${dockerapp}/Contents/Resources/bin/"
@@ -33,4 +36,6 @@ do
     ln -s ${dockerbindir}/$b /usr/local/bin/$b
 done
 
-
+chmod -R +a "$macuser allow list,add_file,search" $dockerapp
+chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" $dockerapp
+chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" $dockerapp
