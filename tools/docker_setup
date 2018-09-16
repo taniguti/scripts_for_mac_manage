@@ -1,0 +1,36 @@
+#!/bin/bash
+
+function _readlink(){
+    c="$1"
+    f=`basename "$c"`
+    if [ "`type -a "$c" 2> /dev/null| head -1`"x = x ]; then
+        d=`cd $(dirname "$c"); pwd`
+    else
+        p=`type -a "$c" | head -1 | awk '{$1="";$2=""; print $0}'| sed 's/^[ \t]*//'`
+        d=`dirname "$p"`
+    fi
+    if [ -L "${d}/${f}" ]; then
+        cd "${d}"
+        r="`readlink -n \"${d}/${f}\"`"
+        _readlink "$r"
+    else
+        echo "${d}/${f}"
+    fi
+}
+
+fullpath_to_me=`_readlink "$0"`
+pathtome=$(dirname "$fullpath_to_me")
+dockerapp=/Applications/Docker.app
+
+${pathtome}/remove_quarantine $dockerapp
+
+dockerbindir="${dockerapp}/Contents/Resources/bin/"
+mkdir -p /usr/local/bin
+
+cd $dockerbindir
+for b in $(ls) 
+do
+    ln -s ${dockerbindir}/$b /usr/local/bin/$b
+done
+
+
