@@ -27,7 +27,7 @@ macuser=stduser
 
 ${pathtome}/remove_quarantine $dockerapp
 
-dockerbindir="${dockerapp}/Contents/Resources/bin/"
+dockerbindir="${dockerapp}/Contents/Resources/bin"
 mkdir -p /usr/local/bin
 
 cd $dockerbindir
