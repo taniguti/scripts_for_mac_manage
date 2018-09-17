@@ -81,5 +81,8 @@ chown 0:0 $dockerplist
 
 vmnetdStatus=$( launchctl list | grep -c com.docker.vmnetd )
 if [ ${vmnetdStatus:-0} -ne 1 ]; then
-    launchctl enable /Library/LaunchDaemons/com.docker.vmnetd.plist
+    launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
+else
+    launchctl stop /Library/LaunchDaemons/com.docker.vmnetd.plist
+    launchctl start /Library/LaunchDaemons/com.docker.vmnetd.plist
 fi
