@@ -78,3 +78,8 @@ _PLIST
 plutil -convert binary1 $dockerplist
 chmod 644 $dockerplist
 chown 0:0 $dockerplist
+
+vmnetdStatus=$( launchctl list | grep -c com.docker.vmnetd )
+if [ ${vmnetdStatus:-0} -ne 1 ]; then
+    launchctl enable /Library/LaunchDaemons/com.docker.vmnetd.plist
+fi
