@@ -35,9 +35,7 @@ case "${mode:-none}" in
             do
                 /bin/echo -n "[ 1 - $numOfresult ]> "
                 read -r NUM
-                expr "$NUM" + 0 > /dev/null 2>&1
-                if [ $? -eq 2 ] ; then continue ;fi
-                if [ "$NUM" -ge 1 ] && [ "$NUM" -le "$numOfresult" ]; then
+                if (( NUM >= 1 )) && (( NUM <= numOfresult )) ; then
                     cert="$(awk -v R="$NUM" 'NR == R {print $0}' "$tmpfile")"
                     break
                 fi
