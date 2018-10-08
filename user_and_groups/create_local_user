@@ -21,7 +21,7 @@ fi
 shortname="$1"
 passwd="$2"
 logfile1="/var/tmp/${shortname}.info"
-logfile2="/var/tmp/${shortname}.logr"
+logfile2="/var/tmp/${shortname}.log"
 
 if [ "${passwd:-X}" = X ]; then
     passwd="$( head -1 /dev/random | base64 | cut -c 4-18 )"
