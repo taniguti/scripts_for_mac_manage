@@ -1,6 +1,6 @@
 # check if hardware is portable or desktop
 # do not care if it is virtual machine.
-if [ `system_profiler SPHardwareDataType | grep "Model Identifier" | grep -i -c 'book'` -eq 1 ]; then
+if [ "$( system_profiler SPHardwareDataType | grep "Model Identifier" | grep -i -c 'book' )" -eq 1 ]; then
     HARDWARE_TYPE='portable'
 else
     HARDWARE_TYPE='desktop'
