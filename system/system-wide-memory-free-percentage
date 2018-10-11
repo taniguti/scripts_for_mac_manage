@@ -1,4 +1,4 @@
 #!/bin/bash
 
-RESULT=`memory_pressure | tail -1 | awk '{print $NF}' | tr -d '%'`
+RESULT="$( memory_pressure | tail -1 | awk '{print $NF}' | tr -d '%' )"
 echo "${RESULT:-'N/A'}"
