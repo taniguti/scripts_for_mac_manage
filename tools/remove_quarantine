@@ -5,12 +5,11 @@
 #-
 
 if [ $# -eq 0 ]; then
-    cat $0 | grep ^#- | cut -c 4-
+    grep ^#- "$0" | cut -c 4-
     exit 0
 fi
 
-
-for a in $@
+for a in "$@"
 do
     if [ -e "$a" ]; then
         DLAPP="$a"
@@ -25,19 +24,15 @@ do
         continue
     fi
 
-    if [ -d "$DLAPP" ]; then
-        OWNER=$(ls -ld "$DLAPP" | awk '{print $3}')
-    else
-        OWNER=$(ls -l "$DLAPP" | awk '{print $3}')
-    fi
+    OWNER=$( stat -F "$DLAPP" | awk '{print $3}')
     
-    if [ $OWNER = $(whoami) ]; then
+    if [ "$OWNER" = "$(whoami)" ]; then
         isMyown=yes
     else
         isMyown=no
     fi
 
-    if [ $isMyown = yes ]; then
+    if [ "$isMyown" = yes ]; then
         xattr -r -d com.apple.quarantine "${DLAPP}"
     else
         sudo xattr -r -d com.apple.quarantine "${DLAPP}"
