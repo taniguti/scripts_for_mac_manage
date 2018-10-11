@@ -25,9 +25,9 @@ dockerplist="/Library/LaunchDaemons/com.docker.vmnetd.plist"
 macuser="$(stat -f %Su /dev/console)"
 
 "${pathtome}/remove_quarantine" "$dockerapp"
-chmod -R +a "$macuser" allow list,add_file,search "$dockerapp"
-chmod -R +a "$macuser" allow add_subdirectory,readattr,writeattr "$dockerapp"
-chmod -R +a "$macuser" allow readextattr,writeextattr,readsecurity "$dockerapp"
+chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
+chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
+chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
 
 mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
 chmod 1755 /Library/PrivilegedHelperTools
