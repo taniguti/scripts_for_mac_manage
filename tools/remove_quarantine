@@ -9,8 +9,7 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
-
-for a in $@
+for a in "$@"
 do
     if [ -e "$a" ]; then
         DLAPP="$a"
@@ -25,13 +24,9 @@ do
         continue
     fi
 
-    if [ -d "$DLAPP" ]; then
-        OWNER=$( ls -ld "$DLAPP" | awk '{print $3}' )
-    else
-        OWNER=$( ls -l "$DLAPP" | awk '{print $3}' )
-    fi
+    OWNER=$( stat -F "$DLAPP" | awk '{print $3}')
     
-    if [ "$OWNER" = "$( whoami )" ]; then
+    if [ "$OWNER" = "$(whoami)" ]; then
         isMyown=yes
     else
         isMyown=no

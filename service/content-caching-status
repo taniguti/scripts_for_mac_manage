@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OS_MAJOR_VERSION=$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )
+OS_MAJOR_VERSION="$( usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
 
 if [ "$OS_MAJOR_VERSION" -ge 13 ]; then
     if AssetCacheManagerUtil isActivated > /dev/null 2>&1 ; then
@@ -9,7 +9,7 @@ if [ "$OS_MAJOR_VERSION" -ge 13 ]; then
         echo "off"
     fi
 elif [ "$OS_MAJOR_VERSION" -ge 8 ]; then
-    if [ X"$( serveradmin status asset | awk '{print $NF}' | tr -d \")" = XRUNNING ]; then
+    if [ X"$( serveradmin status asset | awk '{print $NF}' | tr -d \" )" = XRUNNING ]; then
         echo "on"
     else
         echo "off"
