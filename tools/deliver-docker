@@ -33,7 +33,7 @@ mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
 chmod 1755 /Library/PrivilegedHelperTools
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 
-cd "$dockerbindir"
+cd "$dockerbindir" || exit 1
 for b in $( /bin/ls )
 do
     ln -fs "${dockerbindir}/$b" "/usr/local/bin/$b"
