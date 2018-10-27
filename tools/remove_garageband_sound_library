@@ -1,0 +1,41 @@
+#!/bin/bash
+#- 
+#- Remove GarageBand Sound Libraries if there is not GarageBane.app on your mac.
+#-
+
+if [ -e /Applications/GarageBand.app ]; then
+    /bin/echo "First of all, uninstall /Applications/GarageBand.app from your mac."
+    exit 1
+fi
+
+if [ -e "/Applications/Logic Pro X.app" ]; then
+    /bin/echo "First of all, uninstall /Applications/Logic Pro X.app from your mac."
+    exit 1
+fi
+
+if [ "$( /usr/bin/whoami )" != 'root' ]; then
+    echo "Use me with sudo."
+    exit 1
+fi
+
+if [ -d "/Library/Application Support/GarageBand" ]; then
+    /bin/echo "[REMOVE] $( /usr/bin/du -sh "/Library/Application Support/GarageBand" )"
+    /bin/rm -rf "/Library/Application Support/GarageBand"
+fi
+
+if [ -d "/Library/Application Support/Logic" ]; then
+    /bin/echo "[REMOVE] $( /usr/bin/du -sh "/Library/Application Support/Logic" )"
+    /bin/rm -rf "/Library/Application Support/Logic"
+fi
+
+if [ -d "/Library/Audio/Apple Loops" ]; then
+    /bin/echo "[REMOVE] $( /usr/bin/du -sh "/Library/Audio/Apple Loops" )"
+    /bin/rm -rf "/Library/Audio/Apple Loops"
+fi
+
+if [ -d "/Library/Audio/Apple Loops Index" ]; then
+    /bin/echo "[REMOVE] $( /usr/bin/du -sh "/Library/Audio/Apple Loops Index" )"
+    /bin/rm -rf "/Library/Audio/Apple Loops Index"
+fi
+
+exit 0
