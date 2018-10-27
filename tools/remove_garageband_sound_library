@@ -1,6 +1,6 @@
 #!/bin/bash
 #- 
-#- Remove GarageBand Sound Libraries if there is not GarageBane.app on your mac.
+#- Remove GarageBand Sound Libraries if there is not GarageBand.app on your mac.
 #-
 
 if [ -e /Applications/GarageBand.app ]; then
