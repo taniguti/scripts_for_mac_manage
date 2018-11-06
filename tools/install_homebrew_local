@@ -31,3 +31,5 @@ brew link --force openssl
 brew install --with-openssl curl
 brew link --force curl || :
 curl -V
+
+echo 'Add export PATH="${HOMEBREW_PREFIX}/bin:${PATH}" in your .bashrc'
