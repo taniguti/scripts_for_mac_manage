@@ -2,16 +2,16 @@
 
 function _readlink(){
     c="$1"
-    f="$( basename "$c" )"
-    if [ "$( type -a "$c" 2> /dev/null| head -1 )"x = x ]; then
-        d="$( cd $(dirname "$c"); pwd )"
+    f="$( /usr/bin/basename "$c" )"
+    if [ "$( /usr/bin/type -a "$c" 2> /dev/null| /usr/bin/head -1 )"x = x ]; then
+        d="$( cd "$(/usr/bin/dirname "$c" )" || exit 1; /bin/pwd )"
     else
-        p="$( type -a "$c" | head -1 | awk '{$1="";$2=""; print $0}'| sed 's/^[ \t]*//' )"
-        d="$( dirname "$p" )"
+        p="$( /usr/bin/type -a "$c" | /usr/bin/head -1 | /usr/bin/awk '{$1="";$2=""; print $0}'| /usr/bin/sed 's/^[ \t]*//' )"
+        d="$( /usr/bin/dirname "$p" )"
     fi
     if [ -L "${d}/${f}" ]; then
-        cd "${d}"
-        r="$( readlink -n \"${d}/${f}\" )"
+        cd "${d}" || exit 1
+        r="$( /usr/bin/readlink -n "${d}/${f}" )"
         _readlink "$r"
     else
         echo "${d}/${f}"
@@ -19,32 +19,32 @@ function _readlink(){
 }
 
 fullpath_to_me="$( _readlink "$0" )"
-pathtome="$(dirname "$fullpath_to_me" )"
+pathtome="$(/usr/bin/dirname "$fullpath_to_me" )"
 dockerapp=/Applications/Docker.app
 dockerplist="/Library/LaunchDaemons/com.docker.vmnetd.plist"
 macuser="$(stat -f %Su /dev/console)"
 
 "${pathtome}/remove_quarantine" "$dockerapp"
-chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
-chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
-chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
+/bin/chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
+/bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
+/bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
 
-mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-chmod 1755 /Library/PrivilegedHelperTools
+/bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
+/bin/chmod 1755 /Library/PrivilegedHelperTools
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 
 cd "$dockerbindir" || exit 1
 for b in $( /bin/ls )
 do
-    ln -fs "${dockerbindir}/$b" "/usr/local/bin/$b"
+    /bin/ln -fs "${dockerbindir}/$b" "/usr/local/bin/$b"
 done
 
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 if [ -f "$dockervmnetd" ]; then
-    cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
+    /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
 fi
 
-cat << _PLIST > "$dockerplist"
+/bin/cat << _PLIST > "$dockerplist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -75,14 +75,14 @@ cat << _PLIST > "$dockerplist"
 </plist>
 _PLIST
 
-plutil -convert binary1 "$dockerplist"
-chmod 644 "$dockerplist"
-chown 0:0 "$dockerplist"
+/usr/bin/plutil -convert binary1 "$dockerplist"
+/bin/chmod 644 "$dockerplist"
+/usr/sbin/chown 0:0 "$dockerplist"
 
-vmnetdStatus=$( launchctl list | grep -c com.docker.vmnetd )
+vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c com.docker.vmnetd )
 if [ "${vmnetdStatus:-0}" -ne 1 ]; then
-    launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
+    /bin/launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
 else
-    launchctl stop /Library/LaunchDaemons/com.docker.vmnetd.plist
-    launchctl start /Library/LaunchDaemons/com.docker.vmnetd.plist
+    /bin/launchctl stop /Library/LaunchDaemons/com.docker.vmnetd.plist
+    /bin/launchctl start /Library/LaunchDaemons/com.docker.vmnetd.plist
 fi
