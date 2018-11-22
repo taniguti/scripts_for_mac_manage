@@ -26,6 +26,7 @@ dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
+#macuser="$(stat -f %Su /dev/console)"
 
 "${pathtome}/remove_quarantine" "$dockerapp"
 
@@ -39,7 +40,7 @@ fi
 
 for cmd in $( /usr/bin/stat -f "%N" "${dockerbindir}"/*  )
 do
-    /bin/ln -fs "$cmd" "/usr/local/bin/$cmd"
+    /bin/ln -fs "$cmd" "/usr/local/bin/"
 done
 
 if [ -f "$dockerplist" ]; then
