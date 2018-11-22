@@ -26,7 +26,12 @@ dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
-#macuser="$(stat -f %Su /dev/console)"
+macuser="$(stat -f %Su /dev/console)"
+if [ "$macuser" = root ]; then
+    echo "No user who aboards docker is logging in."
+    echo "Abort"
+    exit 1
+fi
 
 "${pathtome}/remove_quarantine" "$dockerapp"
 
@@ -36,9 +41,12 @@ if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
     /bin/chmod 755 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
     /usr/sbin/chown 0:0 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
+    /bin/chmod -R +a "$macuser allow list,add_file,search" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
+    /bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
+    /bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
 fi
 
-for cmd in $( /usr/bin/stat -f "%N" "${dockerbindir}"/*  )
+for cmd in $( /usr/bin/stat -f %N "${dockerbindir}"/*  )
 do
     /bin/ln -fs "$cmd" "/usr/local/bin/"
 done
@@ -48,7 +56,7 @@ if [ -f "$dockerplist" ]; then
     /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
     /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
 
-    vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c $( /usr/bin/basename -s .plist "$plistfile" ) )
+    vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c $( /usr/bin/basename "$plistfile" .plist ) )
     if [ "${vmnetdStatus:-0}" -eq 0 ]; then
         /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
     else
