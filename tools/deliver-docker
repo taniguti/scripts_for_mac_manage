@@ -34,17 +34,19 @@ if [ "$macuser" = root ]; then
 fi
 
 "${pathtome}/remove_quarantine" "$dockerapp"
+/bin/chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
+/bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
+/bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
 
 /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-
-if [ -f "$dockervmnetd" ]; then
-    /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
-fi
-
 for cmd in $( /usr/bin/stat -f %N "${dockerbindir}"/*  )
 do
     /bin/ln -fs "$cmd" "/usr/local/bin/"
 done
+
+if [ -f "$dockervmnetd" ]; then
+    /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
+fi
 
 if [ -f "$dockerplist" ]; then
     /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
