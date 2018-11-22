@@ -20,69 +20,38 @@ function _readlink(){
 
 fullpath_to_me="$( _readlink "$0" )"
 pathtome="$(/usr/bin/dirname "$fullpath_to_me" )"
+
 dockerapp=/Applications/Docker.app
-dockerplist="/Library/LaunchDaemons/com.docker.vmnetd.plist"
-macuser="$(stat -f %Su /dev/console)"
+dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
+dockerbindir="${dockerapp}/Contents/Resources/bin"
+dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
+plistfile="$( /usr/bin/basename "$dockerplist" )"
 
 "${pathtome}/remove_quarantine" "$dockerapp"
-/bin/chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
-/bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
-/bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
 
 /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-/bin/chmod 1755 /Library/PrivilegedHelperTools
-dockerbindir="${dockerapp}/Contents/Resources/bin"
 
-cd "$dockerbindir" || exit 1
-for b in $( /bin/ls )
-do
-    /bin/ln -fs "${dockerbindir}/$b" "/usr/local/bin/$b"
-done
-
-dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
+    /bin/chmod 755 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
+    /usr/sbin/chown 0:0 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
 fi
 
-/bin/cat << _PLIST > "$dockerplist"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.docker.vmnetd</string>
-    <key>Program</key>
-    <string>/Library/PrivilegedHelperTools/com.docker.vmnetd</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/Library/PrivilegedHelperTools/com.docker.vmnetd</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>Sockets</key>
-    <dict>
-        <key>Listener</key>
-        <dict>
-            <key>SockPathMode</key>
-            <integer>438</integer>
-            <key>SockPathName</key>
-            <string>/var/run/com.docker.vmnetd.sock</string>
-        </dict>
-    </dict>
-    <key>Version</key>
-    <string>33</string>
-</dict>
-</plist>
-_PLIST
+for cmd in $( /usr/bin/stat -f "%N" "${dockerbindir}"/*  )
+do
+    /bin/ln -fs "$cmd" "/usr/local/bin/$cmd"
+done
 
-/usr/bin/plutil -convert binary1 "$dockerplist"
-/bin/chmod 644 "$dockerplist"
-/usr/sbin/chown 0:0 "$dockerplist"
+if [ -f "$dockerplist" ]; then
+    /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
+    /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
+    /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
 
-vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c com.docker.vmnetd )
-if [ "${vmnetdStatus:-0}" -ne 1 ]; then
-    /bin/launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
-else
-    /bin/launchctl stop /Library/LaunchDaemons/com.docker.vmnetd.plist
-    /bin/launchctl start /Library/LaunchDaemons/com.docker.vmnetd.plist
+    vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c $( /usr/bin/basename -s .plist "$plistfile" ) )
+    if [ "${vmnetdStatus:-0}" -eq 0 ]; then
+        /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+    else
+        /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
+        /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
+    fi
 fi
