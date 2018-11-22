@@ -39,11 +39,6 @@ fi
 
 if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
-    /bin/chmod 755 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
-    /usr/sbin/chown 0:0 "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
-    /bin/chmod -R +a "$macuser allow list,add_file,search" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
-    /bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
-    /bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "/Library/PrivilegedHelperTools/$( basename "$dockervmnetd" )"
 fi
 
 for cmd in $( /usr/bin/stat -f %N "${dockerbindir}"/*  )
