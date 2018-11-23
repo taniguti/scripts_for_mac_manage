@@ -2,7 +2,6 @@
 
 dockerapp=/Applications/Docker.app
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
-dockerbindir="${dockerapp}/Contents/Resources/bin"
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
 
