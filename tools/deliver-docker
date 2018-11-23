@@ -1,32 +1,12 @@
 #!/bin/bash
 
-function _readlink(){
-    c="$1"
-    f="$( /usr/bin/basename "$c" )"
-    if [ "$( /usr/bin/type -a "$c" 2> /dev/null| /usr/bin/head -1 )"x = x ]; then
-        d="$( cd "$(/usr/bin/dirname "$c" )" || exit 1; /bin/pwd )"
-    else
-        p="$( /usr/bin/type -a "$c" | /usr/bin/head -1 | /usr/bin/awk '{$1="";$2=""; print $0}'| /usr/bin/sed 's/^[ \t]*//' )"
-        d="$( /usr/bin/dirname "$p" )"
-    fi
-    if [ -L "${d}/${f}" ]; then
-        cd "${d}" || exit 1
-        r="$( /usr/bin/readlink -n "${d}/${f}" )"
-        _readlink "$r"
-    else
-        echo "${d}/${f}"
-    fi
-}
-
-fullpath_to_me="$( _readlink "$0" )"
-pathtome="$(/usr/bin/dirname "$fullpath_to_me" )"
-
 dockerapp=/Applications/Docker.app
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
-"${pathtome}/remove_quarantine" "$dockerapp" || exit 1
+
+/usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
 
 if [ -f "$dockerplist" ]; then
     /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
