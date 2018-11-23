@@ -34,11 +34,6 @@ else
 fi
 
 /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-for cmd in $( /usr/bin/stat -f %N "${dockerbindir}"/*  )
-do
-    /bin/ln -fs "$cmd" "/usr/local/bin/"
-done
-
 if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
 fi
