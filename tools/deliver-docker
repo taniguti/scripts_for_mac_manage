@@ -33,6 +33,12 @@ dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
 
+# Docker for mac companion
+kitematicapp=/Applications/Kitematic.app
+if [ -d "$kitematicapp" ]; then
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
+fi
+
 if [ -f "$dockerplist" ]; then
     /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
 
