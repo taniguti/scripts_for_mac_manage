@@ -40,7 +40,7 @@ if [ -f "$dockerplist" ]; then
             echo "Abort!"
             exit 1
         fi
-        /usr/libexec/PlistBuddy -c "add Version integer $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+        /usr/libexec/PlistBuddy -c "add Version string $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
     else
         : Plist check passed.
     fi
