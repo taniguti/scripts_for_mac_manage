@@ -1,88 +1,80 @@
 #!/bin/bash
+# MIT License
+#
+# Copyright (c) 2018 Takanori TANIGUCHI
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
-function _readlink(){
-    c="$1"
-    f="$( /usr/bin/basename "$c" )"
-    if [ "$( /usr/bin/type -a "$c" 2> /dev/null| /usr/bin/head -1 )"x = x ]; then
-        d="$( cd "$(/usr/bin/dirname "$c" )" || exit 1; /bin/pwd )"
-    else
-        p="$( /usr/bin/type -a "$c" | /usr/bin/head -1 | /usr/bin/awk '{$1="";$2=""; print $0}'| /usr/bin/sed 's/^[ \t]*//' )"
-        d="$( /usr/bin/dirname "$p" )"
-    fi
-    if [ -L "${d}/${f}" ]; then
-        cd "${d}" || exit 1
-        r="$( /usr/bin/readlink -n "${d}/${f}" )"
-        _readlink "$r"
-    else
-        echo "${d}/${f}"
-    fi
-}
-
-fullpath_to_me="$( _readlink "$0" )"
-pathtome="$(/usr/bin/dirname "$fullpath_to_me" )"
 dockerapp=/Applications/Docker.app
-dockerplist="/Library/LaunchDaemons/com.docker.vmnetd.plist"
-macuser="$(stat -f %Su /dev/console)"
+if [ -d "$dockerapp" ]; then
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
+else
+    echo "Not found Docker in /Applications." >&2
+    echo "Abort!" >&2
+    exit 1
+fi
+dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
+dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
+plistfile="$( /usr/bin/basename "$dockerplist" )"
 
-"${pathtome}/remove_quarantine" "$dockerapp"
-/bin/chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
-/bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
-/bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
+# Docker for mac companion
+kitematicapp=/Applications/Kitematic.app
+if [ -d "$kitematicapp" ]; then
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
+fi
+
+if [ -f "$dockerplist" ]; then
+    /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
+
+    # Check if there is vmnetd version in plist. This is very important.
+    dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
+    if [ -z "$dockervmnetd_ver" ]; then
+       dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
+        if [ -z "$dockervmnetd_ver" ]; then
+            echo "Unknown Type of Docker!" >&2
+            echo "Abort!" >&2
+            exit 1
+        fi
+        /usr/libexec/PlistBuddy -c "add Version string $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+    else
+        : Plist check passed.
+    fi
+
+    /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
+    /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
+    /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
+else
+    echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
+    exit 1
+fi
 
 /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-/bin/chmod 1755 /Library/PrivilegedHelperTools
-dockerbindir="${dockerapp}/Contents/Resources/bin"
-
-cd "$dockerbindir" || exit 1
-for b in $( /bin/ls )
-do
-    /bin/ln -fs "${dockerbindir}/$b" "/usr/local/bin/$b"
-done
-
-dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
 fi
 
-/bin/cat << _PLIST > "$dockerplist"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.docker.vmnetd</string>
-    <key>Program</key>
-    <string>/Library/PrivilegedHelperTools/com.docker.vmnetd</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/Library/PrivilegedHelperTools/com.docker.vmnetd</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>Sockets</key>
-    <dict>
-        <key>Listener</key>
-        <dict>
-            <key>SockPathMode</key>
-            <integer>438</integer>
-            <key>SockPathName</key>
-            <string>/var/run/com.docker.vmnetd.sock</string>
-        </dict>
-    </dict>
-    <key>Version</key>
-    <string>33</string>
-</dict>
-</plist>
-_PLIST
-
-/usr/bin/plutil -convert binary1 "$dockerplist"
-/bin/chmod 644 "$dockerplist"
-/usr/sbin/chown 0:0 "$dockerplist"
-
-vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c com.docker.vmnetd )
-if [ "${vmnetdStatus:-0}" -ne 1 ]; then
-    /bin/launchctl load -w /Library/LaunchDaemons/com.docker.vmnetd.plist
+vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
+if [ "${vmnetdStatus:-0}" -eq 0 ]; then
+    /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
 else
-    /bin/launchctl stop /Library/LaunchDaemons/com.docker.vmnetd.plist
-    /bin/launchctl start /Library/LaunchDaemons/com.docker.vmnetd.plist
+    /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
+    /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
 fi
+
+exit $?
