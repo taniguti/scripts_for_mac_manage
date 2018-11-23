@@ -26,17 +26,32 @@ dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 dockerbindir="${dockerapp}/Contents/Resources/bin"
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
-macuser="$(stat -f %Su /dev/console)"
-if [ "$macuser" = root ]; then
-    echo "No user who aboards docker is logging in."
-    echo "Abort"
+"${pathtome}/remove_quarantine" "$dockerapp" || exit 1
+
+if [ -f "$dockerplist" ]; then
+    /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
+
+    # Check if there is vmnetd version in plist. This is very important.
+    dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
+    if [ -z "$dockervmnetd_ver" ]; then
+       dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
+        if [ -z "$dockervmnetd_ver" ]; then
+            echo "Unknown Type of Docker!" >&2
+            echo "Abort!"
+            exit 1
+        fi
+        /usr/libexec/PlistBuddy -c "add Version integer $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+    else
+        : Plist check passed.
+    fi
+
+    /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
+    /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
+    /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
+else
+    echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
     exit 1
 fi
-
-"${pathtome}/remove_quarantine" "$dockerapp"
-/bin/chmod -R +a "$macuser allow list,add_file,search" "$dockerapp"
-/bin/chmod -R +a "$macuser allow add_subdirectory,readattr,writeattr" "$dockerapp"
-/bin/chmod -R +a "$macuser allow readextattr,writeextattr,readsecurity" "$dockerapp"
 
 /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
 for cmd in $( /usr/bin/stat -f %N "${dockerbindir}"/*  )
@@ -48,16 +63,10 @@ if [ -f "$dockervmnetd" ]; then
     /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
 fi
 
-if [ -f "$dockerplist" ]; then
-    /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
-    /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
-    /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
-
-    vmnetdStatus=$( /bin/launchctl list | /usr/bin/grep -c $( /usr/bin/basename "$plistfile" .plist ) )
-    if [ "${vmnetdStatus:-0}" -eq 0 ]; then
-        /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
-    else
-        /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
-        /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
-    fi
+vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
+if [ "${vmnetdStatus:-0}" -eq 0 ]; then
+    /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+else
+    /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
+    /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
 fi
