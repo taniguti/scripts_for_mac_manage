@@ -1,11 +1,16 @@
 #!/bin/bash
 
 dockerapp=/Applications/Docker.app
-dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
+if [ -d "$dockerapp" ]; then
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
+else
+    echo "Not found Docker in /Applications." >&2
+    echo "Abort!" >&2
+    exit 1
+fi
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
+dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
-
-/usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
 
 if [ -f "$dockerplist" ]; then
     /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
@@ -16,7 +21,7 @@ if [ -f "$dockerplist" ]; then
        dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
         if [ -z "$dockervmnetd_ver" ]; then
             echo "Unknown Type of Docker!" >&2
-            echo "Abort!"
+            echo "Abort!" >&2
             exit 1
         fi
         /usr/libexec/PlistBuddy -c "add Version string $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
@@ -44,3 +49,5 @@ else
     /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
     /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
 fi
+
+exit $?
