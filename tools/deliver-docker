@@ -144,10 +144,30 @@ if [ "${install_kitematic:-no}"  = yes ]; then
         echo "Failed to get Kitematic.app"
         exit 1
     fi
-fi
 
-if [ -d "$kitematicapp" ]; then
-    /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
-fi
+    new_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist" )"
+    if [ -z "$info_dockervmnetd_ver" ]; then
+        echo "Unknown Type of Kitematic!" >&2
+        echo "Abort!" >&2
+        exit 1
+    fi
 
+    if [ -d "$kitematicapp" ]; then
+        current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${"$kitematicapp"}/Contents/Info.plist" )"
+        if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
+            do_install=no
+        else
+            /usr/bin/killall Kitematic
+            /bin/rm -rf "$kitematicapp"
+            do_install=yes
+        fi
+    else
+         do_install=yes
+    fi
+
+    if [ "${do_install:-no}" = yes ]; then
+        /bin/cp af "${workdir}/Kitematic.app" "$kitematicapp"
+        /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
+    fi
+fi
 rm -rf "$workdir"
