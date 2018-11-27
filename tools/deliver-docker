@@ -20,61 +20,154 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#-
+#- deliver-docker [-k] [-v] [-h]
+#-  k: Install kitematic.app
+#-  v: Verbose mode
+#-  h: Show this message.
+#-
 
+docker_dlurl="https://download.docker.com/mac/stable/Docker.dmg"
+docker_dmg="$( basename "$docker_dlurl" )"
 dockerapp=/Applications/Docker.app
-if [ -d "$dockerapp" ]; then
-    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
-else
-    echo "Not found Docker in /Applications." >&2
-    echo "Abort!" >&2
-    exit 1
-fi
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
 
-# Docker for mac companion
+kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
+kitematic_zip="$( basename "$kitematic_dlurl" )"
 kitematicapp=/Applications/Kitematic.app
-if [ -d "$kitematicapp" ]; then
-    /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp" || exit 1
+
+# For Jamf support
+if [ "$4" = kitematic ]; then install_kitematic=yes; fi
+
+while getopts kv sw
+do
+    case "$sw" in
+    "k" )
+        install_kitematic=yes
+        ;;
+    "v" )
+        verbose=1
+        ;;
+    * )
+        grep ^#- "$0" | cut -c 4-
+        exit 0
+        ;;
+   esac
+done
+
+if [ "${verbose:-0}" -eq 0 ]; then
+    curl_opt='-s'
+    unzip_opt='-q'
+else
+    curl_opt=''
+    unzip_opt=''
 fi
 
-if [ -f "$dockerplist" ]; then
-    /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
-
-    # Check if there is vmnetd version in plist. This is very important.
-    dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
-    if [ -z "$dockervmnetd_ver" ]; then
-       dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
-        if [ -z "$dockervmnetd_ver" ]; then
-            echo "Unknown Type of Docker!" >&2
-            echo "Abort!" >&2
-            exit 1
-        fi
-        /usr/libexec/PlistBuddy -c "add Version string $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
-    else
-        : Plist check passed.
-    fi
-
-    /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
-    /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
-    /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
+if [ -d "$dockerapp" ]; then
+    current_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist" )"
 else
-    echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
+    current_dockerver="X"
+fi
+
+workdir="$( /usr/bin/mktemp -d )"
+eval /usr/bin/curl "$curl_opt" -o "${workdir}/$docker_dmg" $docker_dlurl
+if [ ! -f "${workdir}/$docker_dmg" ]; then
+    echo "Failed to download $docker_dmg"
     exit 1
 fi
 
-/bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
-if [ -f "$dockervmnetd" ]; then
-    /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
-fi
+devfile="$( /usr/bin/hdiutil attach "${workdir}/$docker_dmg" -nobrowse | grep Docker | awk '{print $1}' )"
+dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist )"
 
-vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
-if [ "${vmnetdStatus:-0}" -eq 0 ]; then
-    /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+if [ "$dmg_dockerver" = "$current_dockerver" ]; then
+    # Already same version installed.
+    # Nothing to do for docker.app.
+    /usr/bin/hdiutil detach "$devfile"
 else
-    /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
-    /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
+    /usr/bin/killall Docker 2> /dev/null
+    /usr/bin/killall com.docker.supervisor 2> /dev/null
+    /usr/bin/killall com.docker.hyperkit 2> /dev/null
+
+    /bin/rm -rf "$dockerapp"
+    /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
+    /usr/bin/hdiutil detach "$devfile"
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
+    /usr/sbin/chown -R 0:80 "$dockerapp"
+
+    if [ -f "$dockerplist" ]; then
+        /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
+
+        # Check if there is vmnetd version in plist. This is very important.
+        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
+        info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
+        if [ -z "$plist_dockervmnetd_ver" ]; then
+            if [ -z "$info_dockervmnetd_ver" ]; then
+                echo "Unknown Type of Docker!" >&2
+                echo "Abort!" >&2
+                exit 1
+            fi
+            /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+        elif [ "$plist_dockervmnetd_ver" != "$info_dockervmnetd_ver" ]; then
+            /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+        fi
+
+        /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
+        /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
+        /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
+    else
+        echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
+        exit 1
+    fi
+
+    /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
+    if [ -f "$dockervmnetd" ]; then
+        /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
+    fi
+
+    vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
+    if [ "${vmnetdStatus:-0}" -eq 0 ]; then
+        /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+    else
+        /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
+        /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
+    fi
 fi
 
-exit $?
+# Docker companion, Kitematic
+if [ "${install_kitematic:-no}"  = yes ]; then
+    eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
+    if [ -f "${workdir}/$kitematic_zip" ]; then
+        eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
+    else
+        echo "Failed to get Kitematic.app"
+        exit 1
+    fi
+
+    new_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist" )"
+    if [ -z "$new_kitematic_ver" ]; then
+        echo "Unknown Type of Kitematic!" >&2
+        echo "Abort!" >&2
+        exit 1
+    fi
+
+    if [ -d "$kitematicapp" ]; then
+        current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist" )"
+        if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
+            do_install=no
+        else
+            /usr/bin/killall Kitematic 2> /dev/null
+            /bin/rm -rf "$kitematicapp"
+            do_install=yes
+        fi
+    else
+         do_install=yes
+    fi
+
+    if [ "${do_install:-no}" = yes ]; then
+        /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
+        /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
+    fi
+fi
+rm -rf "$workdir"
