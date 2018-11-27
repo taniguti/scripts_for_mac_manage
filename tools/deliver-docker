@@ -86,9 +86,9 @@ if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     # Nothing to do for docker.app.
     /usr/bin/hdiutil detach "$devfile"
 else
-    /usr/bin/killall Docker
-    /usr/bin/killall com.docker.supervisor
-    /usr/bin/killall com.docker.hyperkit
+    /usr/bin/killall Docker 2> /dev/null
+    /usr/bin/killall com.docker.supervisor 2> /dev/null
+    /usr/bin/killall com.docker.hyperkit 2> /dev/null
 
     /bin/rm -rf "$dockerapp"
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
@@ -146,18 +146,18 @@ if [ "${install_kitematic:-no}"  = yes ]; then
     fi
 
     new_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist" )"
-    if [ -z "$info_dockervmnetd_ver" ]; then
+    if [ -z "$new_kitematic_ver" ]; then
         echo "Unknown Type of Kitematic!" >&2
         echo "Abort!" >&2
         exit 1
     fi
 
     if [ -d "$kitematicapp" ]; then
-        current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${"$kitematicapp"}/Contents/Info.plist" )"
+        current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist" )"
         if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
             do_install=no
         else
-            /usr/bin/killall Kitematic
+            /usr/bin/killall Kitematic 2> /dev/null
             /bin/rm -rf "$kitematicapp"
             do_install=yes
         fi
@@ -166,7 +166,7 @@ if [ "${install_kitematic:-no}"  = yes ]; then
     fi
 
     if [ "${do_install:-no}" = yes ]; then
-        /bin/cp af "${workdir}/Kitematic.app" "$kitematicapp"
+        /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
     fi
 fi
