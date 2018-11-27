@@ -41,7 +41,7 @@ kitematicapp=/Applications/Kitematic.app
 # For Jamf support
 if [ "$4" = kitematic ]; then install_kitematic=yes; fi
 
-while getopts kvh sw
+while getopts kv sw
 do
     case "$sw" in
     "k" )
@@ -86,29 +86,31 @@ if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     # Nothing to do for docker.app.
     /usr/bin/hdiutil detach "$devfile"
 else
-    killall Docker
-    killall com.docker.supervisor
-    killall com.docker.hyperkit
+    /usr/bin/killall Docker
+    /usr/bin/killall com.docker.supervisor
+    /usr/bin/killall com.docker.hyperkit
 
     /bin/rm -rf "$dockerapp"
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
     /usr/bin/hdiutil detach "$devfile"
-    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp" || exit 1
+    /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
     if [ -f "$dockerplist" ]; then
         /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
 
         # Check if there is vmnetd version in plist. This is very important.
-        dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
-        if [ -z "$dockervmnetd_ver" ]; then
-            dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
-            if [ -z "$dockervmnetd_ver" ]; then
+        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
+        info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
+        if [ -z "$plist_dockervmnetd_ver" ]; then
+            if [ -z "$info_dockervmnetd_ver" ]; then
                 echo "Unknown Type of Docker!" >&2
                 echo "Abort!" >&2
                 exit 1
             fi
-            /usr/libexec/PlistBuddy -c "add Version string $dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+            /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+        elif [ "$plist_dockervmnetd_ver" != "$info_dockervmnetd_ver" ]; then
+            /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
         fi
 
         /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
@@ -133,7 +135,7 @@ else
     fi
 fi
 
-# Docker for mac companion
+# Docker companion, Kitematic
 if [ "${install_kitematic:-no}"  = yes ]; then
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
@@ -145,7 +147,7 @@ if [ "${install_kitematic:-no}"  = yes ]; then
 fi
 
 if [ -d "$kitematicapp" ]; then
-    /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp" || exit 1
+    /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
 fi
 
 rm -rf "$workdir"
