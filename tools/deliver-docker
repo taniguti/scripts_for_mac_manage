@@ -38,12 +38,33 @@ kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
 kitematic_zip="$( basename "$kitematic_dlurl" )"
 kitematicapp=/Applications/Kitematic.app
 
+function sinkDocker(){
+    $re /usr/bin/killall Docker
+    /usr/bin/killall Docker 2> /dev/null
+    $re /usr/bin/killall com.docker.supervisor
+    /usr/bin/killall com.docker.supervisor 2> /dev/null
+    $re /usr/bin/killall com.docker.hyperkit
+    /usr/bin/killall com.docker.hyperkit 2> /dev/null
+    $re rm "$dockerapp"
+    /bin/rm -rf "$dockerapp"
+    $re rm "$dockerplist"
+    /bin/rm -rf "$dockerplist"
+    $re rm "$dockervmnetd"
+    /bin/rm -rf "$dockervmnetd"
+    $re rm $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )
+    /bin/rm -f $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )
+}
+
 # For Jamf support
 if [ "$4" = kitematic ]; then install_kitematic=yes; fi
+if [ "$5" -eq 1 ]; then forced=1; fi
 
-while getopts kv sw
+while getopts fkv sw
 do
-    case "$sw" in
+    case $sw in
+    "f" )
+        forced=1
+        ;;
     "k" )
         install_kitematic=yes
         ;;
@@ -60,9 +81,21 @@ done
 if [ "${verbose:-0}" -eq 0 ]; then
     curl_opt='-s'
     unzip_opt='-q'
+    hdiutil_opt='-quiet'
+    re=":"
 else
     curl_opt=''
     unzip_opt=''
+    re="echo"
+    hdiutil_opt='-verbose'
+fi
+
+if [ "${forced:-0}" -eq 1 ]; then
+    eval $re Quit docker processes and Kitematic if they are running
+    eval $re Remove docker and Kitematic
+    sinkDocker
+    /usr/bin/killall Kitematic 2> /dev/null
+    /bin/rm -rf "$kitematicapp"
 fi
 
 if [ -d "$dockerapp" ]; then
@@ -78,21 +111,18 @@ if [ ! -f "${workdir}/$docker_dmg" ]; then
     exit 1
 fi
 
-devfile="$( /usr/bin/hdiutil attach "${workdir}/$docker_dmg" -nobrowse | grep Docker | awk '{print $1}' )"
+devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | grep Docker | awk '{print $1}' )"
 dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist )"
 
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
-    # Already same version installed.
-    # Nothing to do for docker.app.
-    /usr/bin/hdiutil detach "$devfile"
+    $re Already same version installed.
+    $re "Nothing to do for docker.app."
+    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
-    /usr/bin/killall Docker 2> /dev/null
-    /usr/bin/killall com.docker.supervisor 2> /dev/null
-    /usr/bin/killall com.docker.hyperkit 2> /dev/null
+    sinkDocker
 
-    /bin/rm -rf "$dockerapp"
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
-    /usr/bin/hdiutil detach "$devfile"
+    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
     /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
