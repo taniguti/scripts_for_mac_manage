@@ -43,20 +43,22 @@ verbose=off
 forced=no
 
 function sinkDocker(){
-    $re /usr/bin/killall Docker
+    $re killall Docker
     /usr/bin/killall Docker 2> /dev/null
-    $re /usr/bin/killall com.docker.supervisor
+    $re killall com.docker.supervisor
     /usr/bin/killall com.docker.supervisor 2> /dev/null
-    $re /usr/bin/killall com.docker.hyperkit
+    $re killall com.docker.hyperkit
     /usr/bin/killall com.docker.hyperkit 2> /dev/null
-    $re rm "$dockerapp"
+    $re remove "$dockerapp"
     /bin/rm -rf "$dockerapp"
-    $re rm "$dockerplist"
+    $re remove "$dockerplist"
     /bin/rm -rf "$dockerplist"
-    $re rm "$dockervmnetd"
+    $re remove "$dockervmnetd"
     /bin/rm -rf "$dockervmnetd"
-    $re "rm $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )"
+    $re "remove $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )"
     /bin/rm -f $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )
+    $re remove user config dir.
+    /bin/rm -rf /Users/*/.docker
 }
 
 # For Jamf support
@@ -186,9 +188,9 @@ fi
 # Docker companion, Kitematic
 if [ "${install_kitematic:-no}"  = yes ]; then
     if [ "$forced" = yes ]; then
-        $re /usr/bin/killall Kitematic
+        $re killall Kitematic
         /usr/bin/killall Kitematic 2> /dev/null
-        $re rm "$kitematicapp"
+        $re remove "$kitematicapp"
         /bin/rm -rf "$kitematicapp"
     fi
 
@@ -218,7 +220,7 @@ if [ "${install_kitematic:-no}"  = yes ]; then
         else
             $re killall Kitematic
             /usr/bin/killall Kitematic 2> /dev/null
-            $re rm "$kitematicapp"
+            $re remove "$kitematicapp"
             /bin/rm -rf "$kitematicapp"
             do_install=yes
         fi
@@ -227,7 +229,7 @@ if [ "${install_kitematic:-no}"  = yes ]; then
     fi
 
     if [ "${do_install:-no}" = yes ]; then
-        $re cp Kitematic.app into /Applicaitons
+        $re copy Kitematic.app into /Applicaitons
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
         $re remove com.apple.quarantine from "$kitematicapp"
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
