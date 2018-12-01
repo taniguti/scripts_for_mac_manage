@@ -21,34 +21,64 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #-
-#- deliver-docker [-k] [-v] [-h]
-#-  k: Install kitematic.app
+#- deliver-docker [-k] [-f] [-v] [-h]
+#-  f: Force re-install/update
+#-  k: Install/update kitematic.app too
 #-  v: Verbose mode
 #-  h: Show this message.
 #-
+#- If you use this script with JamfPro,
+#-   Parm 4: set to "kitematic", install Kitematic.app too. (case sensitive)
+#-   Parm 5: set to 1, force re-install/update.
+#-
 
 docker_dlurl="https://download.docker.com/mac/stable/Docker.dmg"
-docker_dmg="$( basename "$docker_dlurl" )"
+docker_dmg="$( /usr/bin/basename "$docker_dlurl" )"
 dockerapp=/Applications/Docker.app
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
 
 kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
-kitematic_zip="$( basename "$kitematic_dlurl" )"
+kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
 kitematicapp=/Applications/Kitematic.app
 
-# For Jamf support
-if [ "$4" = kitematic ]; then install_kitematic=yes; fi
+verbose=off
+forced=no
 
-while getopts kv sw
+function sinkDocker(){
+    $re "sink Docker"
+    /usr/bin/killall Docker 2> /dev/null
+    $re "make system/com.docker.vmnetd disabled"
+    /bin/launchctl disable system/com.docker.vmnetd
+    $re "remove $dockerapp"
+    /bin/rm -rf "$dockerapp"
+    $re "remove Launchd plist file: /Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+    /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+    $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
+    /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
+    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' | tr '\n' ' ' )"
+    if [ ! -z "$docker_cmds" ]; then
+        $re "remove $docker_cmds"
+        /bin/rm -f $docker_cmds
+    fi
+}
+
+# For Jamf support
+if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
+if [ x"$5" = x1 ]; then forced=yes; fi
+
+while getopts fkv sw
 do
-    case "$sw" in
+    case $sw in
+    "f" )
+        forced=yes
+        ;;
     "k" )
         install_kitematic=yes
         ;;
     "v" )
-        verbose=1
+        verbose=on
         ;;
     * )
         grep ^#- "$0" | cut -c 4-
@@ -57,18 +87,30 @@ do
    esac
 done
 
-if [ "${verbose:-0}" -eq 0 ]; then
-    curl_opt='-s'
+if [ "$verbose" = off ]; then
+    curl_opt='--silent'
     unzip_opt='-q'
+    hdiutil_opt='-quiet'
+    re=":"
 else
+    # debug for download with curl
+    #curl_opt='--verbose'
     curl_opt=''
     unzip_opt=''
+    hdiutil_opt='-verbose'
+    re="eval echo \$( /bin/date +'%F %T'):"
 fi
 
+$re "verbose mode: $verbose"
+$re "Force install: $forced"
+
+if [ "$forced" = yes ]; then sinkDocker; fi
 if [ -d "$dockerapp" ]; then
     current_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist" )"
+    $re "current docker version: $current_dockerver"
 else
     current_dockerver="X"
+    $re Install fresh Docker
 fi
 
 workdir="$( /usr/bin/mktemp -d )"
@@ -78,43 +120,53 @@ if [ ! -f "${workdir}/$docker_dmg" ]; then
     exit 1
 fi
 
-devfile="$( /usr/bin/hdiutil attach "${workdir}/$docker_dmg" -nobrowse | grep Docker | awk '{print $1}' )"
+devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | grep Docker | awk '{print $1}' )"
 dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist )"
 
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
-    # Already same version installed.
-    # Nothing to do for docker.app.
-    /usr/bin/hdiutil detach "$devfile"
+    $re Already same version installed: $current_dockerver
+    $re "Nothing to do for $dockerapp."
+    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
-    /usr/bin/killall Docker 2> /dev/null
-    /usr/bin/killall com.docker.supervisor 2> /dev/null
-    /usr/bin/killall com.docker.hyperkit 2> /dev/null
+    if [ "$forced" = no ]; then
+        sinkDocker
+    fi
 
-    /bin/rm -rf "$dockerapp"
+    $re copy Docker into /Applications
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
-    /usr/bin/hdiutil detach "$devfile"
+    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
+    $re remove com.apple.quarantine from "$dockerapp"
     /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
+    $re fix ownership
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
     if [ -f "$dockerplist" ]; then
+        $re copy "$dockerplist" into /Library/LaunchDaemons/
         /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
 
-        # Check if there is vmnetd version in plist. This is very important.
+        $re "Check if there is vmnetd version in plist. This is very important."
         plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
         info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
+        $re "plist_dockervmnetd_ver: $plist_dockervmnetd_ver"
+        $re "info_dockervmnetd_ver: $info_dockervmnetd_ver"
         if [ -z "$plist_dockervmnetd_ver" ]; then
             if [ -z "$info_dockervmnetd_ver" ]; then
                 echo "Unknown Type of Docker!" >&2
                 echo "Abort!" >&2
                 exit 1
             fi
+            $re "set $info_dockervmnetd_ver into $plistfile"
             /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
         elif [ "$plist_dockervmnetd_ver" != "$info_dockervmnetd_ver" ]; then
+            $re "Update $info_dockervmnetd_ver into $plistfile"
             /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
         fi
 
+        $re fix file mode to 644 : "/Library/LaunchDaemons/$plistfile"
         /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
+        $re fix ownership: "/Library/LaunchDaemons/$plistfile"
         /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
+        $re make Apple binary: "/Library/LaunchDaemons/$plistfile"
         /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
     else
         echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
@@ -123,9 +175,11 @@ else
 
     /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
     if [ -f "$dockervmnetd" ]; then
+        $re Copy "$dockervmnetd" into /Library/PrivilegedHelperTools/
         /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
     fi
 
+    $re Start vmnetd.
     vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
     if [ "${vmnetdStatus:-0}" -eq 0 ]; then
         /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
@@ -133,10 +187,19 @@ else
         /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
         /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
     fi
+    $re "$( /bin/launchctl list | /usr/bin/grep "$( /usr/bin/basename "$plistfile" .plist )" )"
 fi
 
 # Docker companion, Kitematic
 if [ "${install_kitematic:-no}"  = yes ]; then
+    if [ "$forced" = yes ]; then
+        $re killall Kitematic
+        /usr/bin/killall Kitematic 2> /dev/null
+        $re remove "$kitematicapp"
+        /bin/rm -rf "$kitematicapp"
+    fi
+
+    $re Install Kitematic.
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
         eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
@@ -151,13 +214,18 @@ if [ "${install_kitematic:-no}"  = yes ]; then
         echo "Abort!" >&2
         exit 1
     fi
+    $re "new_kitematic_ver: $new_kitematic_ver"
 
     if [ -d "$kitematicapp" ]; then
         current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist" )"
         if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
+            $re "Already same version installed: $current_kitematic_ver"
+            $re "Nothing to do for $kitematicapp."
             do_install=no
         else
+            $re killall Kitematic
             /usr/bin/killall Kitematic 2> /dev/null
+            $re remove "$kitematicapp"
             /bin/rm -rf "$kitematicapp"
             do_install=yes
         fi
@@ -166,8 +234,12 @@ if [ "${install_kitematic:-no}"  = yes ]; then
     fi
 
     if [ "${do_install:-no}" = yes ]; then
+        $re copy Kitematic.app into /Applicaitons
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
+        $re remove com.apple.quarantine from "$kitematicapp"
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
     fi
 fi
 rm -rf "$workdir"
+$re Done.
+
