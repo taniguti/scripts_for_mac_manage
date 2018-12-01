@@ -50,14 +50,15 @@ function sinkDocker(){
     $re "sink Docker"
     /usr/bin/killall Docker 2> /dev/null
     $re "make system/com.docker.vmnetd disabled"
-    /bin/launchctl disable system/com.docker.vmnetd
+    /bin/launchctl kill QUIT system/com.docker.vmnetd
+    /bin/launchctl unload -w "/Library/LaunchDaemons/$plistfile"
     $re "remove $dockerapp"
     /bin/rm -rf "$dockerapp"
     $re "remove Launchd plist file: /Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
     /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
     $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
-    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' | tr '\n' ' ' )"
+    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
     if [ ! -z "$docker_cmds" ]; then
         $re "remove $docker_cmds"
         /bin/rm -f $docker_cmds
@@ -88,7 +89,7 @@ do
         verbose=on
         ;;
     * )
-        grep ^#- "$0" | cut -c 4-
+        /usr/bin/grep ^#- "$0" | cut -c 4-
         exit 0
         ;;
    esac
@@ -127,7 +128,7 @@ if [ ! -f "${workdir}/$docker_dmg" ]; then
     exit 1
 fi
 
-devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | grep Docker | awk '{print $1}' )"
+devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}' )"
 dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist )"
 
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
@@ -187,15 +188,8 @@ else
         /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
     fi
 
-    $re Start vmnetd.
-    vmnetdStatus="$( /bin/launchctl list | /usr/bin/grep -c "$( /usr/bin/basename "$plistfile" .plist )" )"
-    if [ "${vmnetdStatus:-0}" -eq 0 ]; then
-        /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
-    else
-        /bin/launchctl stop "/Library/LaunchDaemons/$plistfile"
-        /bin/launchctl start "/Library/LaunchDaemons/$plistfile"
-    fi
-    $re "$( /bin/launchctl list | /usr/bin/grep "$( /usr/bin/basename "$plistfile" .plist )" )"
+    /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+    $re "com.docker.vmnetd $( /bin/launchctl print  system/com.docker.vmnetd | /usr/bin/grep state)"
 fi
 
 # Docker companion, Kitematic
