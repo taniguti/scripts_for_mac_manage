@@ -22,48 +22,48 @@
 # SOFTWARE.
 #-
 #- deliver-docker [-k] [-f] [-v] [-h]
-#-  f: Force install/update
+#-  f: Force re-install/update
 #-  k: Install/update kitematic.app too
 #-  v: Verbose mode
 #-  h: Show this message.
 #-
+#- If you use this script with JamfPro,
+#-   Parm 4: set to "kitematic", install Kitematic.app too. (case sensitive)
+#-   Parm 5: set to 1, force re-install/update.
+#-
 
 docker_dlurl="https://download.docker.com/mac/stable/Docker.dmg"
-docker_dmg="$( basename "$docker_dlurl" )"
+docker_dmg="$( /usr/bin/basename "$docker_dlurl" )"
 dockerapp=/Applications/Docker.app
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
 plistfile="$( /usr/bin/basename "$dockerplist" )"
 
 kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
-kitematic_zip="$( basename "$kitematic_dlurl" )"
+kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
 kitematicapp=/Applications/Kitematic.app
 
 verbose=off
 forced=no
 
 function sinkDocker(){
-    $re killall Docker
+    $re "sink Docker"
     /usr/bin/killall Docker 2> /dev/null
-    $re killall com.docker.supervisor
-    /usr/bin/killall com.docker.supervisor 2> /dev/null
-    $re killall com.docker.hyperkit
-    /usr/bin/killall com.docker.hyperkit 2> /dev/null
-    $re remove "$dockerapp"
+    $re "make system/com.docker.vmnetd disabled"
+    /bin/launchctl disable system/com.docker.vmnetd
+    $re "remove $dockerapp"
     /bin/rm -rf "$dockerapp"
-    $re remove "$dockerplist"
-    /bin/rm -rf "$dockerplist"
-    $re remove "$dockervmnetd"
-    /bin/rm -rf "$dockervmnetd"
+    $re "remove Launchd plist file: /Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+    /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+    $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
+    /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     $re "remove $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )"
     /bin/rm -f $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )
-    $re remove user config dir.
-    /bin/rm -rf /Users/*/.docker
 }
 
 # For Jamf support
-if [ "$4" = kitematic ]; then install_kitematic=yes; fi
-if [ "$5" = "1" ]; then forced=yes; fi
+if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
+if [ x"$5" = x1 ]; then forced=yes; fi
 
 while getopts fkv sw
 do
@@ -90,7 +90,9 @@ if [ "$verbose" = off ]; then
     hdiutil_opt='-quiet'
     re=":"
 else
-    curl_opt='--verbose'
+    # debug for download with curl
+    #curl_opt='--verbose'
+    curl_opt=''
     unzip_opt=''
     hdiutil_opt='-verbose'
     re="echo"
@@ -237,3 +239,4 @@ if [ "${install_kitematic:-no}"  = yes ]; then
 fi
 rm -rf "$workdir"
 $re Done.
+
