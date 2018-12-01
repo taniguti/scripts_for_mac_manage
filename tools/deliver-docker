@@ -64,6 +64,13 @@ function sinkDocker(){
     fi
 }
 
+function killKitematic(){
+    $re kill Kitematic
+    /usr/bin/killall Kitematic 2> /dev/null
+    $re remove "$kitematicapp"
+    /bin/rm -rf "$kitematicapp"
+}
+
 # For Jamf support
 if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
 if [ x"$5" = x1 ]; then forced=yes; fi
@@ -132,6 +139,7 @@ else
         sinkDocker
     fi
 
+    $re "Install Docker version: $dmg_dockerver"
     $re copy Docker into /Applications
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
@@ -192,14 +200,7 @@ fi
 
 # Docker companion, Kitematic
 if [ "${install_kitematic:-no}"  = yes ]; then
-    if [ "$forced" = yes ]; then
-        $re killall Kitematic
-        /usr/bin/killall Kitematic 2> /dev/null
-        $re remove "$kitematicapp"
-        /bin/rm -rf "$kitematicapp"
-    fi
-
-    $re Install Kitematic.
+    $re "download kitematic anyway."
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
         eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
@@ -208,32 +209,32 @@ if [ "${install_kitematic:-no}"  = yes ]; then
         exit 1
     fi
 
+    $re "Check version of kitematic"
     new_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist" )"
     if [ -z "$new_kitematic_ver" ]; then
         echo "Unknown Type of Kitematic!" >&2
         echo "Abort!" >&2
         exit 1
     fi
-    $re "new_kitematic_ver: $new_kitematic_ver"
+
+    if [ "$forced" = yes ]; then killKitematic; fi
 
     if [ -d "$kitematicapp" ]; then
         current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist" )"
         if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
+            do_install=no
             $re "Already same version installed: $current_kitematic_ver"
             $re "Nothing to do for $kitematicapp."
-            do_install=no
         else
-            $re killall Kitematic
-            /usr/bin/killall Kitematic 2> /dev/null
-            $re remove "$kitematicapp"
-            /bin/rm -rf "$kitematicapp"
             do_install=yes
+            killKitematic
         fi
     else
          do_install=yes
     fi
 
     if [ "${do_install:-no}" = yes ]; then
+        $re "Install Kitematic version: $new_kitematic_ver"
         $re copy Kitematic.app into /Applicaitons
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
         $re remove com.apple.quarantine from "$kitematicapp"
@@ -242,4 +243,3 @@ if [ "${install_kitematic:-no}"  = yes ]; then
 fi
 rm -rf "$workdir"
 $re Done.
-
