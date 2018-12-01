@@ -58,7 +58,7 @@ function sinkDocker(){
     /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
     $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
-    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
+    docker_cmds="$( /usr/bin/stat -q -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
     if [ ! -z "$docker_cmds" ]; then
         $re "remove $docker_cmds"
         /bin/rm -f $docker_cmds
@@ -189,7 +189,8 @@ else
     fi
 
     /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
-    $re "com.docker.vmnetd $( /bin/launchctl print  system/com.docker.vmnetd | /usr/bin/grep state)"
+    vmnetd_status="$( /bin/launchctl print  system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
+    $re "com.docker.vmnetd $vmnetd_status"
 fi
 
 # Docker companion, Kitematic
