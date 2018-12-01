@@ -95,7 +95,7 @@ else
     curl_opt=''
     unzip_opt=''
     hdiutil_opt='-verbose'
-    re="echo"
+    re="eval echo \$( /bin/date +'%F %T'):"
 fi
 
 $re "verbose mode: $verbose"
@@ -103,11 +103,11 @@ $re "Force install: $forced"
 
 if [ "$forced" = yes ]; then sinkDocker; fi
 if [ -d "$dockerapp" ]; then
-    $re "current_dockerver: $current_dockerver"
     current_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist" )"
+    $re "current docker version: $current_dockerver"
 else
-    $re Install fresh Docker
     current_dockerver="X"
+    $re Install fresh Docker
 fi
 
 workdir="$( /usr/bin/mktemp -d )"
