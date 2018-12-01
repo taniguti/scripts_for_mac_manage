@@ -57,8 +57,11 @@ function sinkDocker(){
     /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
     $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
-    $re "remove $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )"
-    /bin/rm -f $( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' )
+    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* | grep "$dockerapp" | awk '{print $(NF -2)}' | tr '\n' ' ' )"
+    if [ ! -z "$docker_cmds" ]; then
+        $re "remove $docker_cmds"
+        /bin/rm -f $docker_cmds
+    fi
 }
 
 # For Jamf support
