@@ -186,6 +186,10 @@ else
     if [ -f "$dockervmnetd" ]; then
         $re Copy "$dockervmnetd" into /Library/PrivilegedHelperTools/
         /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
+    else
+        echo "Unknown Type of Docker! Not found $dockervmnetd" >&2
+        echo "Abort!" >&2
+        exit 1
     fi
 
     /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
@@ -195,7 +199,7 @@ fi
 
 # Docker companion, Kitematic
 if [ "${install_kitematic:-no}"  = yes ]; then
-    $re "download kitematic anyway."
+    $re "download kitematic anyway. Should use better way..."
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
         eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
