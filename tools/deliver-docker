@@ -37,7 +37,7 @@ docker_dmg="$( /usr/bin/basename "$docker_dlurl" )"
 dockerapp=/Applications/Docker.app
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
-plistfile="$( /usr/bin/basename "$dockerplist" )"
+plistfile="/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
 
 kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
 kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
@@ -51,11 +51,11 @@ function sinkDocker(){
     /usr/bin/killall Docker 2> /dev/null
     $re "make system/com.docker.vmnetd disabled"
     /bin/launchctl kill QUIT system/com.docker.vmnetd
-    /bin/launchctl unload -w "/Library/LaunchDaemons/$plistfile"
+    /bin/launchctl unload -w "$plistfile"
     $re "remove $dockerapp"
     /bin/rm -rf "$dockerapp"
-    $re "remove Launchd plist file: /Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
-    /bin/rm -f "/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+    $re "remove Launchd plist file: $plistfile"
+    /bin/rm -f "$plistfile"
     $re "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     docker_cmds="$( /usr/bin/stat -q -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
@@ -150,11 +150,11 @@ else
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
     if [ -f "$dockerplist" ]; then
-        $re copy "$dockerplist" into /Library/LaunchDaemons/
-        /bin/cp -af "$dockerplist" /Library/LaunchDaemons/
+        $re "copy $dockerplist to $plistfile"
+        /bin/cp -af "$dockerplist" "$plistfile"
 
         $re "Check if there is vmnetd version in plist. This is very important."
-        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "/Library/LaunchDaemons/$plistfile" 2> /dev/null )"
+        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "$plistfile"  2> /dev/null )"
         info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
         $re "plist_dockervmnetd_ver: $plist_dockervmnetd_ver"
         $re "info_dockervmnetd_ver: $info_dockervmnetd_ver"
@@ -165,18 +165,18 @@ else
                 exit 1
             fi
             $re "set $info_dockervmnetd_ver into $plistfile"
-            /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+            /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "$plistfile"
         elif [ "$plist_dockervmnetd_ver" != "$info_dockervmnetd_ver" ]; then
             $re "Update $info_dockervmnetd_ver into $plistfile"
-            /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "/Library/LaunchDaemons/$plistfile"
+            /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "$plistfile"
         fi
 
-        $re fix file mode to 644 : "/Library/LaunchDaemons/$plistfile"
-        /bin/chmod 644 "/Library/LaunchDaemons/$plistfile"
-        $re fix ownership: "/Library/LaunchDaemons/$plistfile"
-        /usr/sbin/chown 0:0 "/Library/LaunchDaemons/$plistfile"
-        $re make Apple binary: "/Library/LaunchDaemons/$plistfile"
-        /usr/bin/plutil -convert binary1 "/Library/LaunchDaemons/$plistfile"
+        $re fix file mode to 644 : "$plistfile"
+        /bin/chmod 644 "$plistfile"
+        $re fix ownership: "$plistfile"
+        /usr/sbin/chown 0:0 "$plistfile"
+        $re make Apple binary: "$plistfile"
+        /usr/bin/plutil -convert binary1 "$plistfile"
     else
         echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
         exit 1
@@ -192,7 +192,7 @@ else
         exit 1
     fi
 
-    /bin/launchctl load -w "/Library/LaunchDaemons/$plistfile"
+    /bin/launchctl load -w "$plistfile"
     vmnetd_status="$( /bin/launchctl print  system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $re "com.docker.vmnetd $vmnetd_status"
 fi
