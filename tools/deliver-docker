@@ -59,7 +59,7 @@ function sinkDocker(){
     $CMT "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     docker_cmds="$( /usr/bin/stat -q -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
-    if [ ! -z "$docker_cmds" ]; then
+    if [ -n "$docker_cmds" ]; then
         $CMT "remove $docker_cmds"
         /bin/rm -f $docker_cmds
     fi
@@ -154,7 +154,7 @@ else
         /bin/cp -af "$dockerplist" "$plistfile"
 
         $CMT "Check if there is vmnetd version in plist. This is very important."
-        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "$plistfile"  2> /dev/null )"
+        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "$plistfile" 2> /dev/null )"
         info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2> /dev/null )"
         $CMT "plist_dockervmnetd_ver: $plist_dockervmnetd_ver"
         $CMT "info_dockervmnetd_ver: $info_dockervmnetd_ver"
