@@ -76,7 +76,7 @@ function killKitematic(){
 if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
 if [ x"$5" = x1 ]; then forced=yes; fi
 
-while getopts fkv sw
+while getopts fhkv sw
 do
     case $sw in
     "f" )
