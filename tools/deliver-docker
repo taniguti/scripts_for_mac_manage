@@ -193,12 +193,12 @@ else
     fi
 
     /bin/launchctl load -w "$plistfile"
-    vmnetd_status="$( /bin/launchctl print  system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
+    vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $CMT "com.docker.vmnetd $vmnetd_status"
 fi
 
 # Docker companion, Kitematic
-if [ "${install_kitematic:-no}"  = yes ]; then
+if [ "${install_kitematic:-no}" = yes ]; then
     $CMT "download kitematic anyway. Should use better way..."
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
