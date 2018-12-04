@@ -61,7 +61,7 @@ function sinkDocker(){
     docker_cmds="$( /usr/bin/stat -q -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
     if [ -n "$docker_cmds" ]; then
         $CMT "remove $docker_cmds"
-        /bin/rm -f $docker_cmds
+        eval /bin/rm -f "$docker_cmds"
     fi
 }
 
