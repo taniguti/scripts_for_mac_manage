@@ -49,7 +49,7 @@ forced=no
 function sinkDocker(){
     $CMT "sink Docker"
     /usr/bin/killall Docker 2> /dev/null
-    $CMT "make system/com.docker.vmnetd disabled"
+    $CMT "quit system/com.docker.vmnetd"
     /bin/launchctl kill QUIT system/com.docker.vmnetd
     /bin/launchctl unload -w "$plistfile"
     $CMT "remove $dockerapp"
