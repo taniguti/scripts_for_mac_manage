@@ -21,7 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #-
-#- deliver-docker [-k] [-f] [-v] [-h]
+#- deliver-docker [-e] [-k] [-f] [-v] [-h]
+#-  e: Download edge version of Docker instead of stable version.
 #-  f: Force re-install/update
 #-  k: Install/update kitematic.app too
 #-  v: Verbose mode
@@ -31,20 +32,6 @@
 #-   Parm 4: set to "kitematic", install Kitematic.app too. (case sensitive)
 #-   Parm 5: set to 1, force re-install/update.
 #-
-
-docker_dlurl="https://download.docker.com/mac/stable/Docker.dmg"
-docker_dmg="$( /usr/bin/basename "$docker_dlurl" )"
-dockerapp=/Applications/Docker.app
-dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
-dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
-plistfile="/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
-
-kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
-kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
-kitematicapp=/Applications/Kitematic.app
-
-verbose=off
-forced=no
 
 function sinkDocker(){
     $CMT "sink Docker"
@@ -72,13 +59,45 @@ function killKitematic(){
     /bin/rm -rf "$kitematicapp"
 }
 
+function chaincheck(){
+    if [ ! -x "/usr/local/bin/santactl" ]; then
+        echo 'ok'
+    fi
+
+    app="$1"
+    id="$2"
+
+    IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$app" )"
+    if [ "$IsSigned" != "Yes" ]; then
+        echo 'not code-signed'
+    fi
+    DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$app" )"
+    if [ "$DEVID" != "$id" ]; then
+        echo "Developer ID is $DEVID. But it must be $id."
+    fi
+    ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$app" )"
+    APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
+
+    if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
+        echo "ROOT CA is not match."
+    fi
+    echo 'ok'
+}
+
+verbose=off
+forced=no
+release=stable
+
 # For Jamf support
 if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
 if [ x"$5" = x1 ]; then forced=yes; fi
 
-while getopts fhkv sw
+while getopts efhkv sw
 do
     case $sw in
+    "e" )
+        release=edge
+        ;;
     "f" )
         forced=yes
         ;;
@@ -94,6 +113,18 @@ do
         ;;
    esac
 done
+
+docker_devid="9BNSXJN65R"
+docker_dlurl="https://download.docker.com/mac/${release}/Docker.dmg"
+docker_dmg="$( /usr/bin/basename "$docker_dlurl" )"
+dockerapp=/Applications/Docker.app
+dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
+dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
+plistfile="/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist" )"
+
+kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
+kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
+kitematicapp=/Applications/Kitematic.app
 
 if [ "$verbose" = off ]; then
     curl_opt='--silent'
@@ -111,6 +142,8 @@ fi
 
 $CMT "verbose mode: $verbose"
 $CMT "Force install: $forced"
+$CMT "Download URL: $docker_dlurl"
+$CMT "Download URL: $kitematic_dlurl"
 
 if [ "$forced" = yes ]; then sinkDocker; fi
 if [ -d "$dockerapp" ]; then
@@ -124,18 +157,35 @@ fi
 workdir="$( /usr/bin/mktemp -d )"
 eval /usr/bin/curl "$curl_opt" -o "${workdir}/$docker_dmg" $docker_dlurl
 if [ ! -f "${workdir}/$docker_dmg" ]; then
-    echo "Failed to download $docker_dmg"
+    echo "Failed to download $docker_dmg" >&2
+    /bin/rm -rf "$workdir"
     exit 1
 fi
 
 devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}' )"
-dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist )"
+dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist 2> /dev/null )"
+if [ -z "$dmg_dockerver" ]; then
+    echo "Unknown Type of Docker! Failed to get docker version." >&2
+    echo "Abort!" >&2
+    /bin/rm -rf "$workdir"
+    exit 1
+fi
 
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     $CMT Already same version installed: $current_dockerver
     $CMT "Nothing to do for $dockerapp."
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
+    result="$( chaincheck "/Volumes/Docker/Docker.app" "$docker_devid" )"
+    if [ "$result" = ok ]; then
+        $CMT "Docker.app: Signing-chain check passed."
+    else
+        echo "Docker.app: Signing-chain check failed."
+        echo "$result" >&2
+        /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
+        /bin/rm -rf "$workdir"
+        exit 1
+    fi
     if [ "$forced" = no ]; then
         sinkDocker
     fi
@@ -160,8 +210,9 @@ else
         $CMT "info_dockervmnetd_ver: $info_dockervmnetd_ver"
         if [ -z "$plist_dockervmnetd_ver" ]; then
             if [ -z "$info_dockervmnetd_ver" ]; then
-                echo "Unknown Type of Docker!" >&2
+                echo "Unknown Type of Docker! Failed to get version of com.docker.vmnetd." >&2
                 echo "Abort!" >&2
+                /bin/rm -rf "$workdir"
                 exit 1
             fi
             $CMT "set $info_dockervmnetd_ver into $plistfile"
@@ -179,6 +230,7 @@ else
         /usr/bin/plutil -convert binary1 "$plistfile"
     else
         echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
+        /bin/rm -rf "$workdir"
         exit 1
     fi
 
@@ -189,6 +241,7 @@ else
     else
         echo "Unknown Type of Docker! Not found $dockervmnetd" >&2
         echo "Abort!" >&2
+        /bin/rm -rf "$workdir"
         exit 1
     fi
 
@@ -204,7 +257,8 @@ if [ "${install_kitematic:-no}" = yes ]; then
     if [ -f "${workdir}/$kitematic_zip" ]; then
         eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
     else
-        echo "Failed to get Kitematic.app"
+        echo "Failed to get Kitematic.app" >&2
+        /bin/rm -rf "$workdir"
         exit 1
     fi
 
@@ -213,6 +267,7 @@ if [ "${install_kitematic:-no}" = yes ]; then
     if [ -z "$new_kitematic_ver" ]; then
         echo "Unknown Type of Kitematic!" >&2
         echo "Abort!" >&2
+        /bin/rm -rf "$workdir"
         exit 1
     fi
 
@@ -232,7 +287,16 @@ if [ "${install_kitematic:-no}" = yes ]; then
          do_install=yes
     fi
 
-    if [ "${do_install:-no}" = yes ]; then
+    if [ "$do_install" = yes ]; then
+        result="$( chaincheck "${workdir}/Kitematic.app" "$docker_devid" )"
+        if [ "$result" = ok ]; then
+            $CMT "Kitematic.app: Signing-chain check passed."
+        else
+            echo "Kitematic.app: Signing-chain check failed." >&2
+            echo "$result" >&2
+            /bin/rm -rf "$workdir"
+            exit 1
+        fi
         $CMT "Install Kitematic version: $new_kitematic_ver"
         $CMT copy Kitematic.app into /Applicaitons
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
@@ -240,5 +304,5 @@ if [ "${install_kitematic:-no}" = yes ]; then
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
     fi
 fi
-rm -rf "$workdir"
+/bin/rm -rf "$workdir"
 $CMT Done.
