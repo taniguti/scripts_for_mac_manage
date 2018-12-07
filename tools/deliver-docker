@@ -21,8 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #-
-#- deliver-docker [-e] [-k] [-f] [-v] [-h]
-#-  e: Download edge version of Docker instead of stable version.
+#- deliver-docker [-k] [-f] [-v] [-h]
 #-  f: Force re-install/update
 #-  k: Install/update kitematic.app too
 #-  v: Verbose mode
@@ -99,12 +98,9 @@ release=stable
 if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
 if [ x"$5" = x1 ]; then forced=yes; fi
 
-while getopts efhkv sw
+while getopts fhkv sw
 do
     case $sw in
-    "e" )
-        release=edge
-        ;;
     "f" )
         forced=yes
         ;;
