@@ -90,9 +90,11 @@ function chaincheck(){
     return 0
 }
 
+# Default mode
 verbose=off
 forced=no
 release=stable
+install_kitematic=no
 
 # For Jamf support
 if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
@@ -146,6 +148,7 @@ fi
 $CMT "verbose mode: $verbose"
 $CMT "Force install: $forced"
 $CMT "Download URL: $docker_dlurl"
+$CMT "Install Kitematic.app: $install_kitematic"
 $CMT "Download URL: $kitematic_dlurl"
 
 if [ "$forced" = yes ]; then sinkDocker; fi
@@ -253,7 +256,7 @@ else
 fi
 
 # Docker companion, Kitematic
-if [ "${install_kitematic:-no}" = yes ]; then
+if [ "$install_kitematic" = yes ]; then
     $CMT "download kitematic anyway. Should use better way..."
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
