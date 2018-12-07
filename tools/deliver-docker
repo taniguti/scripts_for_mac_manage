@@ -310,3 +310,4 @@ if [ "$install_kitematic" = yes ]; then
 fi
 /bin/rm -rf "$workdir"
 $CMT Done.
+exit 0
