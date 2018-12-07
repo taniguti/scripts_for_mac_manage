@@ -60,28 +60,35 @@ function killKitematic(){
 }
 
 function chaincheck(){
-    if [ ! -x "/usr/local/bin/santactl" ]; then
-        echo 'ok'
-    fi
-
     app="$1"
     id="$2"
 
+    if [ ! -x "/usr/local/bin/santactl" ]; then
+        echo 'ok'
+        return 0
+    fi
+
     IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$app" )"
     if [ "$IsSigned" != "Yes" ]; then
-        echo 'not code-signed'
+        echo "$app is not code-signed."
+        return 1
     fi
+
     DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$app" )"
     if [ "$DEVID" != "$id" ]; then
-        echo "Developer ID is $DEVID. But it must be $id."
+        echo "$app: Developer ID is $DEVID. But it must be $id."
+        return 1
     fi
+
     ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$app" )"
     APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
-
     if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
-        echo "ROOT CA is not match."
+        echo "$app: ROOT CA of code-signing is not match."
+        return 1
     fi
+
     echo 'ok'
+    return 0
 }
 
 verbose=off
@@ -180,7 +187,6 @@ else
     if [ "$result" = ok ]; then
         $CMT "Docker.app: Signing-chain check passed."
     else
-        echo "Docker.app: Signing-chain check failed."
         echo "$result" >&2
         /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
         /bin/rm -rf "$workdir"
@@ -292,7 +298,6 @@ if [ "${install_kitematic:-no}" = yes ]; then
         if [ "$result" = ok ]; then
             $CMT "Kitematic.app: Signing-chain check passed."
         else
-            echo "Kitematic.app: Signing-chain check failed." >&2
             echo "$result" >&2
             /bin/rm -rf "$workdir"
             exit 1
