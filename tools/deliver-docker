@@ -66,28 +66,29 @@ function checkapp(){
     app="$1"
     id="$2"
 
-    if [ ! -x "/usr/local/bin/santactl" ]; then
-        echo 'ok'
-        return 0
-    fi
+    if [ -x "/usr/local/bin/santactl" ]; then
+        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$app" )"
+        if [ "$IsSigned" != "Yes" ]; then
+            echo "$app is not code-signed."
+            return 1
+        fi
 
-    IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$app" )"
-    if [ "$IsSigned" != "Yes" ]; then
-        echo "$app is not code-signed."
-        return 1
-    fi
+        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$app" )"
+        if [ "$DEVID" != "$id" ]; then
+            echo "$app: Developer ID is $DEVID. But it must be $id."
+            return 1
+        fi
 
-    DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$app" )"
-    if [ "$DEVID" != "$id" ]; then
-        echo "$app: Developer ID is $DEVID. But it must be $id."
-        return 1
-    fi
+        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$app" )"
+        APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
+        if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
+            echo "$app: ROOT CA of code-signing is not match."
+            return 1
+        fi
+    elif [ -x /usr/bin/codesign ]; then
 
-    ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$app" )"
-    APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
-    if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
-        echo "$app: ROOT CA of code-signing is not match."
-        return 1
+    else
+        : no check.
     fi
 
     echo 'ok'
@@ -269,9 +270,9 @@ else
 
 fi
 
-# Docker companion, Kitematic
+# Docker companion, Kitematic install
 if [ "$install_kitematic" = yes ]; then
-    $CMT "download kitematic anyway. Should use better way..."
+    $CMT "download kitematic anyway. Should use better way...Any idea?"
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
         eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
