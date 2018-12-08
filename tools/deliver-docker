@@ -21,23 +21,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #-
-#- deliver-docker [-k] [-f] [-v] [-h]
+#- deliver-docker [-e] [-f] [-h] [-k ] [-v]
+#-  e: Install/update Edge release version
 #-  f: Force re-install/update
+#-  h: Show this message.
 #-  k: Install/update kitematic.app too
 #-  v: Verbose mode
-#-  h: Show this message.
 #-
-#- If you use this script with JamfPro,
-#-   Parm 4: set to "kitematic", install Kitematic.app too. (case sensitive)
-#-   Parm 5: set to 1, force re-install/update.
+#- If you can use this script via JamfPro. Every values are case in-sensitive.
+#-   Parm 4: set "yes" to install Kitematic.app too.
+#-   Parm 5: set "edge" to install/update edge release version.
+#-   Parm 6: set "yes" to re-install/update in force.
 #-
 
 function sinkDocker(){
+    $CMT "kill Kitematic anyway. I don not know if it runs now."
+    /usr/bin/killall Kitematic 2> /dev/null
     $CMT "sink Docker"
     /usr/bin/killall Docker 2> /dev/null
     $CMT "quit system/com.docker.vmnetd"
-    /bin/launchctl kill QUIT system/com.docker.vmnetd
-    /bin/launchctl unload -w "$plistfile"
+    /bin/launchctl kill QUIT system/com.docker.vmnetd 2> /dev/null
+    /bin/launchctl unload -w "$plistfile" 2> /dev/null
     $CMT "remove $dockerapp"
     /bin/rm -rf "$dockerapp"
     $CMT "remove Launchd plist file: $plistfile"
@@ -97,12 +101,19 @@ release=stable
 install_kitematic=no
 
 # For Jamf support
-if [ x"$4" = xkitematic ]; then install_kitematic=yes; fi
-if [ x"$5" = x1 ]; then forced=yes; fi
+# Parm $4 for kitematic (yes/no)
+if [ "$( echo "$4" | tr "[:upper:]" "[:lower:]" )" = yes  ]; then install_kitematic=yes ; fi
+# Parm $5 for Edge (stable/edge)
+if [ "$( echo "$5" | tr "[:upper:]" "[:lower:]" )" = edge ]; then release=edge ; fi
+# Parm $6 for force install/update (yes/no)
+if [ "$( echo "$6" | tr "[:upper:]" "[:lower:]" )" = yes  ]; then forced=yes ; fi
 
-while getopts fhkv sw
+while getopts efhkv sw
 do
     case $sw in
+    "e" )
+        release=edge
+        ;;
     "f" )
         forced=yes
         ;;
@@ -148,6 +159,7 @@ fi
 $CMT "verbose mode: $verbose"
 $CMT "Force install: $forced"
 $CMT "Download URL: $docker_dlurl"
+$CMT "Docker release version: $release"
 $CMT "Install Kitematic.app: $install_kitematic"
 $CMT "Download URL: $kitematic_dlurl"
 
@@ -253,6 +265,8 @@ else
     /bin/launchctl load -w "$plistfile"
     vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $CMT "com.docker.vmnetd $vmnetd_status"
+
+
 fi
 
 # Docker companion, Kitematic
