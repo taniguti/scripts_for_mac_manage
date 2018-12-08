@@ -229,7 +229,7 @@ if [ "$dmg_dockerver" = "$current_dockerver" ]; then
 else
     result="$( checkapp "/Volumes/Docker/Docker.app" "$docker_devid" )"
     if [ "$result" = ok ]; then
-        $CMT "Docker.app: Signing-chain check passed."
+        $CMT "Docker.app: check passed."
     else
         echo "$result" >&2
         /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
@@ -342,7 +342,7 @@ if [ "$install_kitematic" = yes ]; then
     if [ "$do_install" = yes ]; then
         result="$( checkapp "${workdir}/Kitematic.app" "$docker_devid" )"
         if [ "$result" = ok ]; then
-            $CMT "Kitematic.app: Signing-chain check passed."
+            $CMT "Kitematic.app: check passed."
         else
             echo "$result" >&2
             /bin/rm -rf "$workdir"
