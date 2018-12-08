@@ -22,7 +22,7 @@
 # SOFTWARE.
 #-
 #- deliver-docker [-e] [-f] [-h] [-k ] [-v]
-#-  e: Install/update Edge release version
+#-  e: Install/update Edge version
 #-  f: Force re-install/update
 #-  h: Show this message.
 #-  k: Install/update kitematic.app too
@@ -48,7 +48,7 @@ function sinkDocker(){
     /bin/rm -f "$plistfile"
     $CMT "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
-    docker_cmds="$( /usr/bin/stat -q -l /usr/local/bin/* | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
+    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* 2> /dev/null | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
     if [ -n "$docker_cmds" ]; then
         $CMT "remove $docker_cmds"
         eval /bin/rm -f "$docker_cmds"
@@ -86,13 +86,45 @@ function checkapp(){
             return 1
         fi
     elif [ -x /usr/bin/codesign ]; then
-
+        TeamIdentifier="None"
+        eval "$( /usr/bin/codesign --verify --verbose --display "$app" 2>&1 | /usr/bin/grep 'TeamIdentifier=' )"
+        if [ "$TeamIdentifier" != "$id" ]; then
+            echo "$app: TeamIdentifier is $TeamIdentifier. But it must be $id."
+            return 1
+        fi
     else
         : no check.
     fi
 
     echo 'ok'
     return 0
+}
+
+function fixUserConfig(){
+    installedver="$1"
+    case "$installedver" in
+    stable )
+        experimental=False
+        ;;
+    edge )
+        experimental=True
+        ;;
+    * )
+        $CMT "Nothing to do. argment is $1"
+        return 0
+        ;;
+    esac
+
+    for userconfig in $( /usr/bin/stat -l /Users/*/.docker/daemon.json 2> /dev/null | /usr/bin/awk '{print $NF}' )
+    do
+        $CMT "Found: $userconfig"
+        if [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userconfig" )" != "$experimental" ]; then
+            $CMT "Remove $userconfig for reset due to release version has changed to $installedver version."
+            /bin/rm -rf "$( dirname "$userconfig" )"
+        else
+            $CMT "$userconfig is OK. Nothing to do."
+        fi
+    done
 }
 
 # Default mode
@@ -267,7 +299,7 @@ else
     vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $CMT "com.docker.vmnetd $vmnetd_status"
 
-
+    fixUserConfig $release
 fi
 
 # Docker companion, Kitematic install
