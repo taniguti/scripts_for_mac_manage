@@ -62,7 +62,7 @@ function killKitematic(){
     /bin/rm -rf "$kitematicapp"
 }
 
-function chaincheck(){
+function checkapp(){
     app="$1"
     id="$2"
 
@@ -194,7 +194,7 @@ if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     $CMT "Nothing to do for $dockerapp."
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
-    result="$( chaincheck "/Volumes/Docker/Docker.app" "$docker_devid" )"
+    result="$( checkapp "/Volumes/Docker/Docker.app" "$docker_devid" )"
     if [ "$result" = ok ]; then
         $CMT "Docker.app: Signing-chain check passed."
     else
@@ -307,7 +307,7 @@ if [ "$install_kitematic" = yes ]; then
     fi
 
     if [ "$do_install" = yes ]; then
-        result="$( chaincheck "${workdir}/Kitematic.app" "$docker_devid" )"
+        result="$( checkapp "${workdir}/Kitematic.app" "$docker_devid" )"
         if [ "$result" = ok ]; then
             $CMT "Kitematic.app: Signing-chain check passed."
         else
