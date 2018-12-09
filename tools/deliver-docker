@@ -102,29 +102,31 @@ function checkapp(){
 
 function fixUserConfig(){
     installedver="$1"
-    case "$installedver" in
-    stable )
+    if [ "$installedver" = stable ]; then
         experimental=False
-        ;;
-    edge )
+    else
         experimental=True
-        ;;
-    * )
-        $CMT "Nothing to do. argment is $1"
-        return 0
-        ;;
-    esac
+    fi
 
-    for userconfig in $( /usr/bin/stat -l /Users/*/.docker/daemon.json 2> /dev/null | /usr/bin/awk '{print $NF}' )
-    do
-        $CMT "Found: $userconfig"
-        if [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userconfig" )" != "$experimental" ]; then
-            $CMT "Remove $userconfig for reset due to release version has changed to $installedver version."
-            /bin/rm -rf "$( dirname "$userconfig" )"
-        else
-            $CMT "$userconfig is OK. Nothing to do."
-        fi
-    done
+    username="$2"
+    if [ "$username" = none ]; then
+        $CMT "Nothing to do for anyone. I do not take care about user config now."
+        return 0
+    fi
+
+    userDockerConfig="/Users/$username/.docker/daemon.json"
+    userDockerGroupConfig="/Users/$username/Library/Group Containers/group.com.docker/settings.json"
+
+    if [ -f "$userDockerConfig" ] && \
+       [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" != "$experimental" ]; then
+        $CMT "Remove $( dirname "$userDockerConfig" ) due to version has changed to $installedver."
+        /bin/rm -rf "$( dirname "$userDockerConfig" )"
+    fi
+    if [ -f "$userDockerGroupConfig" ] && \
+       [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" != "$installedver" ]; then
+        $CMT "Remove $( dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
+        /bin/rm -rf "$( dirname "$userDockerGroupConfig" )"
+    fi
 }
 
 # Default mode
@@ -134,6 +136,8 @@ release=stable
 install_kitematic=no
 
 # For Jamf support
+# Parm $3
+currentConsoleUser="$3"
 # Parm $4 for kitematic (yes/no)
 if [ "$( echo "$4" | tr "[:upper:]" "[:lower:]" )" = yes  ]; then install_kitematic=yes ; fi
 # Parm $5 for Edge (stable/edge)
@@ -175,6 +179,13 @@ kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
 kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl" )"
 kitematicapp=/Applications/Kitematic.app
 
+if [ -z "$currentConsoleUser" ]; then
+    currentConsoleUser="$( /usr/bin/stat -l /dev/console | /usr/bin/awk '{print $3}' )"
+fi
+if [ "$currentConsoleUser" = root ] || [ -z "$currentConsoleUser" ]; then
+    currentConsoleUser=none
+fi
+
 if [ "$verbose" = off ]; then
     curl_opt='--silent'
     unzip_opt='-q'
@@ -189,17 +200,18 @@ else
     CMT="eval echo \$( /bin/date +'%F %T'):"
 fi
 
-$CMT "verbose mode: $verbose"
+$CMT "Verbose mode: $verbose"
 $CMT "Force install: $forced"
 $CMT "Download URL: $docker_dlurl"
 $CMT "Docker release version: $release"
 $CMT "Install Kitematic.app: $install_kitematic"
 $CMT "Download URL: $kitematic_dlurl"
+$CMT "Current console user: $currentConsoleUser"
 
 if [ "$forced" = yes ]; then sinkDocker; fi
 if [ -d "$dockerapp" ]; then
     current_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist" )"
-    $CMT "current docker version: $current_dockerver"
+    $CMT "Current docker version: $current_dockerver"
 else
     current_dockerver="X"
     $CMT Install fresh Docker
@@ -244,13 +256,13 @@ else
     $CMT copy Docker into /Applications
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
-    $CMT remove com.apple.quarantine from "$dockerapp"
+    $CMT Remove com.apple.quarantine from "$dockerapp"
     /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
-    $CMT fix ownership
+    $CMT Fix ownership
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
     if [ -f "$dockerplist" ]; then
-        $CMT "copy $dockerplist to $plistfile"
+        $CMT "Copy $dockerplist to $plistfile"
         /bin/cp -af "$dockerplist" "$plistfile"
 
         $CMT "Check if there is vmnetd version in plist. This is very important."
@@ -265,18 +277,18 @@ else
                 /bin/rm -rf "$workdir"
                 exit 1
             fi
-            $CMT "set $info_dockervmnetd_ver into $plistfile"
+            $CMT "Set $info_dockervmnetd_ver into $plistfile"
             /usr/libexec/PlistBuddy -c "add Version string $info_dockervmnetd_ver" "$plistfile"
         elif [ "$plist_dockervmnetd_ver" != "$info_dockervmnetd_ver" ]; then
             $CMT "Update $info_dockervmnetd_ver into $plistfile"
             /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "$plistfile"
         fi
 
-        $CMT fix file mode to 644 : "$plistfile"
+        $CMT Fix file mode to 644 : "$plistfile"
         /bin/chmod 644 "$plistfile"
-        $CMT fix ownership: "$plistfile"
+        $CMT Fix ownership: "$plistfile"
         /usr/sbin/chown 0:0 "$plistfile"
-        $CMT make Apple binary: "$plistfile"
+        $CMT Make Apple binary: "$plistfile"
         /usr/bin/plutil -convert binary1 "$plistfile"
     else
         echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
@@ -299,7 +311,7 @@ else
     vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $CMT "com.docker.vmnetd $vmnetd_status"
 
-    fixUserConfig $release
+    fixUserConfig "$release" "$currentConsoleUser"
 fi
 
 # Docker companion, Kitematic install
@@ -349,9 +361,9 @@ if [ "$install_kitematic" = yes ]; then
             exit 1
         fi
         $CMT "Install Kitematic version: $new_kitematic_ver"
-        $CMT copy Kitematic.app into /Applicaitons
+        $CMT Copy Kitematic.app into /Applicaitons
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
-        $CMT remove com.apple.quarantine from "$kitematicapp"
+        $CMT Remove com.apple.quarantine from "$kitematicapp"
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
     fi
 fi
