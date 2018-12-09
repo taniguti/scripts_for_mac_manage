@@ -120,14 +120,14 @@ function fixUserConfig(){
 
     if [ -f "$userDockerConfig" ] && \
        [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" = "$experimental" ]; then
-        $CMT ok
+        $CMT "$userDockerConfig is ok for $installedver. [experimental: $experimental]"
     else
         $CMT "Remove $( dirname "$userDockerConfig" ) due to version has changed to $installedver."
         /bin/rm -rf "$( dirname "$userDockerConfig" )"
     fi
     if [ -f "$userDockerGroupConfig" ] && \
        [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" = "$installedver" ]; then
-        $CMT ok
+        $CMT "$userDockerGroupConfig is ok for $installedver."
     else
         $CMT "Remove $( dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
         /bin/rm -rf "$( dirname "$userDockerGroupConfig" )"
