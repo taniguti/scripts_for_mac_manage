@@ -117,22 +117,18 @@ function fixUserConfig(){
     userDockerConfig="/Users/$username/.docker/daemon.json"
     userDockerGroupConfig="/Users/$username/Library/Group Containers/group.com.docker/settings.json"
 
-    if [ -f "$userDockerConfig" ]; then
-        if [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" != "$experimental" ]; then
-            $CMT "Remove $( dirname "$userDockerConfig" ) due to version has changed to $installedver."
-            /bin/rm -rf "$( dirname "$userDockerConfig" )"
-        fi
+    if [ -f "$userDockerConfig" ] && \
+       [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" = "$experimental" ]; then
+        $CMT ok
     else
-        $CMT "Try to remove $( dirname "$userDockerConfig" ) just in case."
+        $CMT "Remove $( dirname "$userDockerConfig" ) due to version has changed to $installedver."
         /bin/rm -rf "$( dirname "$userDockerConfig" )"
     fi
-    if [ -f "$userDockerGroupConfig" ]; then
-        if [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" != "$installedver" ]; then
-            $CMT "Remove $( dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
-            /bin/rm -rf "$( dirname "$userDockerGroupConfig" )"
-        fi
+    if [ -f "$userDockerGroupConfig" ] && \
+       [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" = "$installedver" ]; then
+        $CMT ok
     else
-        $CMT "Try to remove $( dirname "$userDockerGroupConfig" ) just in case."
+        $CMT "Remove $( dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
         /bin/rm -rf "$( dirname "$userDockerGroupConfig" )"
     fi
 }
