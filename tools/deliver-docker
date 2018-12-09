@@ -93,7 +93,8 @@ function checkapp(){
             return 1
         fi
     else
-        : no check.
+        echo "No tool for ckeck $app here. Checking is abort."
+        return 1
     fi
 
     echo 'ok'
