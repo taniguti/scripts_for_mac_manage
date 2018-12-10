@@ -35,65 +35,65 @@
 #-
 
 function sinkDocker(){
-    $CMT "kill Kitematic anyway. I don not know if it runs now."
+    $CMT "Kill Kitematic anyway. I don not know if it runs now."
     /usr/bin/killall Kitematic 2> /dev/null
-    $CMT "sink Docker"
+    $CMT "Sink Docker"
     /usr/bin/killall Docker 2> /dev/null
-    $CMT "quit system/com.docker.vmnetd"
+    $CMT "Quit system/com.docker.vmnetd"
     /bin/launchctl kill QUIT system/com.docker.vmnetd 2> /dev/null
     /bin/launchctl unload -w "$plistfile" 2> /dev/null
-    $CMT "remove $dockerapp"
+    $CMT "Remove $dockerapp"
     /bin/rm -rf "$dockerapp"
-    $CMT "remove Launchd plist file: $plistfile"
+    $CMT "Remove Launchd plist file: $plistfile"
     /bin/rm -f "$plistfile"
-    $CMT "remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
+    $CMT "Remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* 2> /dev/null | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
     if [ -n "$docker_cmds" ]; then
-        $CMT "remove $docker_cmds"
+        $CMT "Remove $docker_cmds"
         eval /bin/rm -f "$docker_cmds"
     fi
 }
 
 function killKitematic(){
-    $CMT kill Kitematic
+    $CMT "Kill Kitematic"
     /usr/bin/killall Kitematic 2> /dev/null
-    $CMT remove "$kitematicapp"
+    $CMT "Remove $kitematicapp"
     /bin/rm -rf "$kitematicapp"
 }
 
 function checkapp(){
-    app="$1"
-    id="$2"
+    PathToApp="$1"
+    DeveloperId="$2"
 
     if [ -x "/usr/local/bin/santactl" ]; then
-        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$app" )"
+        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$PathToApp" )"
         if [ "$IsSigned" != "Yes" ]; then
-            echo "$app is not code-signed."
+            echo "$PathToApp is not code-signed."
             return 1
         fi
 
-        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$app" )"
-        if [ "$DEVID" != "$id" ]; then
-            echo "$app: Developer ID is $DEVID. But it must be $id."
+        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp" )"
+        if [ "$DEVID" != "$DeveloperId" ]; then
+            echo "$PathToApp: Developer ID is $DEVID. But it must be $DeveloperId."
             return 1
         fi
 
-        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$app" )"
+        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$PathToApp" )"
         APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
         if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
-            echo "$app: ROOT CA of code-signing is not match."
+            echo "$PathToApp: ROOT CA of code-signing is not match."
             return 1
         fi
     elif [ -x /usr/bin/codesign ]; then
         TeamIdentifier="None"
-        eval "$( /usr/bin/codesign --verify --verbose --display "$app" 2>&1 | /usr/bin/grep 'TeamIdentifier=' )"
-        if [ "$TeamIdentifier" != "$id" ]; then
-            echo "$app: TeamIdentifier is $TeamIdentifier. But it must be $id."
+        eval "$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/grep 'TeamIdentifier=' )"
+        if [ "$TeamIdentifier" != "$DeveloperId" ]; then
+            echo "$PathToApp: TeamIdentifier is $TeamIdentifier. But it must be $DeveloperId."
             return 1
         fi
     else
-        echo "No tool for ckeck $app here. Checking is abort."
+        echo "No tool for ckeck $PathToApp here. Checking is abort."
         return 1
     fi
 
@@ -122,15 +122,15 @@ function fixUserConfig(){
        [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" = "$experimental" ]; then
         $CMT "$userDockerConfig is ok for $installedver. [experimental: $experimental]"
     else
-        $CMT "Remove $( dirname "$userDockerConfig" ) due to version has changed to $installedver."
-        /bin/rm -rf "$( dirname "$userDockerConfig" )"
+        $CMT "Remove $( /usr/bin/dirname "$userDockerConfig" ) due to version has changed to $installedver."
+        /bin/rm -rf "$( /usr/bin/dirname "$userDockerConfig" )"
     fi
     if [ -f "$userDockerGroupConfig" ] && \
        [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" = "$installedver" ]; then
         $CMT "$userDockerGroupConfig is ok for $installedver."
     else
-        $CMT "Remove $( dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
-        /bin/rm -rf "$( dirname "$userDockerGroupConfig" )"
+        $CMT "Remove $( /usr/bin/dirname "$userDockerGroupConfig" ) due to version has changed to $installedver."
+        /bin/rm -rf "$( /usr/bin/dirname "$userDockerGroupConfig" )"
     fi
 }
 
@@ -144,11 +144,11 @@ install_kitematic=no
 # Parm $3
 currentConsoleUser="$3"
 # Parm $4 for kitematic (yes/no)
-if [ "$( echo "$4" | tr "[:upper:]" "[:lower:]" )" = yes  ]; then install_kitematic=yes ; fi
+if [ "$( echo "$4" | /usr/bin/tr "[:upper:]" "[:lower:]" )" = yes  ]; then install_kitematic=yes ; fi
 # Parm $5 for Edge (stable/edge)
-if [ "$( echo "$5" | tr "[:upper:]" "[:lower:]" )" = edge ]; then release=edge ; fi
+if [ "$( echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]" )" = edge ]; then release=edge ; fi
 # Parm $6 for force install/update (yes/no)
-if [ "$( echo "$6" | tr "[:upper:]" "[:lower:]" )" = yes  ]; then forced=yes ; fi
+if [ "$( echo "$6" | /usr/bin/tr "[:upper:]" "[:lower:]" )" = yes  ]; then forced=yes ; fi
 
 while getopts efhkv sw
 do
@@ -166,7 +166,7 @@ do
         verbose=on
         ;;
     * )
-        /usr/bin/grep ^#- "$0" | cut -c 4-
+        /usr/bin/grep ^#- "$0" | /usr/bin/cut -c 4-
         exit 0
         ;;
    esac
@@ -219,7 +219,7 @@ if [ -d "$dockerapp" ]; then
     $CMT "Current docker version: $current_dockerver"
 else
     current_dockerver="X"
-    $CMT Install fresh Docker
+    $CMT "Install fresh Docker"
 fi
 
 workdir="$( /usr/bin/mktemp -d )"
@@ -240,7 +240,7 @@ if [ -z "$dmg_dockerver" ]; then
 fi
 
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
-    $CMT Already same version installed: $current_dockerver
+    $CMT "Already same version installed: $current_dockerver"
     $CMT "Nothing to do for $dockerapp."
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
@@ -258,12 +258,12 @@ else
     fi
 
     $CMT "Install Docker version: $dmg_dockerver"
-    $CMT copy Docker into /Applications
+    $CMT "Copy Docker into /Applications"
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
     /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
-    $CMT Remove com.apple.quarantine from "$dockerapp"
+    $CMT "Remove com.apple.quarantine from $dockerapp"
     /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
-    $CMT Fix ownership
+    $CMT "Fix ownership"
     /usr/sbin/chown -R 0:80 "$dockerapp"
 
     if [ -f "$dockerplist" ]; then
@@ -289,11 +289,11 @@ else
             /usr/libexec/PlistBuddy -c "set Version string $info_dockervmnetd_ver" "$plistfile"
         fi
 
-        $CMT Fix file mode to 644 : "$plistfile"
+        $CMT "Fix file mode to 644 : $plistfile"
         /bin/chmod 644 "$plistfile"
-        $CMT Fix ownership: "$plistfile"
+        $CMT "Fix ownership: $plistfile"
         /usr/sbin/chown 0:0 "$plistfile"
-        $CMT Make Apple binary: "$plistfile"
+        $CMT "Make Apple binary: $plistfile"
         /usr/bin/plutil -convert binary1 "$plistfile"
     else
         echo "Cancel to aboard. Not boarding pass($dockerplist) found." >&2
@@ -303,7 +303,7 @@ else
 
     /bin/mkdir -p /usr/local/bin /Library/PrivilegedHelperTools
     if [ -f "$dockervmnetd" ]; then
-        $CMT Copy "$dockervmnetd" into /Library/PrivilegedHelperTools/
+        $CMT "Copy $dockervmnetd into /Library/PrivilegedHelperTools/"
         /bin/cp -af "$dockervmnetd" /Library/PrivilegedHelperTools/
     else
         echo "Unknown Type of Docker! Not found $dockervmnetd" >&2
@@ -321,10 +321,10 @@ fi
 
 # Docker companion, Kitematic install
 if [ "$install_kitematic" = yes ]; then
-    $CMT "download kitematic anyway. Should use better way...Any idea?"
+    $CMT "Download kitematic anyway. Should use better way...Any idea?"
     eval /usr/bin/curl "$curl_opt" -o "${workdir}/$kitematic_zip" $kitematic_dlurl
     if [ -f "${workdir}/$kitematic_zip" ]; then
-        eval unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
+        eval /usr/bin/unzip $unzip_opt "${workdir}/$kitematic_zip" -d "$workdir"
     else
         echo "Failed to get Kitematic.app" >&2
         /bin/rm -rf "$workdir"
@@ -366,12 +366,12 @@ if [ "$install_kitematic" = yes ]; then
             exit 1
         fi
         $CMT "Install Kitematic version: $new_kitematic_ver"
-        $CMT Copy Kitematic.app into /Applicaitons
+        $CMT "Copy Kitematic.app into /Applicaitons"
         /bin/cp -af "${workdir}/Kitematic.app" "$kitematicapp"
-        $CMT Remove com.apple.quarantine from "$kitematicapp"
+        $CMT "Remove com.apple.quarantine from $kitematicapp"
         /usr/bin/xattr -r -d com.apple.quarantine "$kitematicapp"
     fi
 fi
 /bin/rm -rf "$workdir"
-$CMT Done.
+$CMT "Done."
 exit 0
