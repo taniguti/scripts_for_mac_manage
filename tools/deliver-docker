@@ -48,11 +48,11 @@ function sinkDocker(){
     /bin/rm -f "$plistfile"
     $CMT "Remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
     /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd" )"
-    docker_cmds="$( /usr/bin/stat -l /usr/local/bin/* 2> /dev/null | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{print $(NF -2)}' | /usr/bin/tr '\n' ' ' )"
-    if [ -n "$docker_cmds" ]; then
-        $CMT "Remove $docker_cmds"
-        eval /bin/rm -f "$docker_cmds"
-    fi
+    for docker_cmd in $( /usr/bin/stat -l /usr/local/bin/* 2> /dev/null | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{ print $(NF - 2) }' )
+    do
+        $CMT "remove $docker_cmd"
+        /bin/rm -f "$docker_cmd"
+    done
 }
 
 function killKitematic(){
@@ -86,8 +86,7 @@ function checkapp(){
             return 1
         fi
     elif [ -x /usr/bin/codesign ]; then
-        TeamIdentifier="None"
-        eval "$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/grep 'TeamIdentifier=' )"
+        TeamIdentifier="$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/awk -F= '$1 == "TeamIdentifier" {print $2}' )"
         if [ "$TeamIdentifier" != "$DeveloperId" ]; then
             echo "$PathToApp: TeamIdentifier is $TeamIdentifier. But it must be $DeveloperId."
             return 1
@@ -97,6 +96,7 @@ function checkapp(){
         return 1
     fi
 
+    # Application's code signing check is passwd.
     echo 'ok'
     return 0
 }
@@ -223,7 +223,7 @@ else
 fi
 
 workdir="$( /usr/bin/mktemp -d )"
-eval /usr/bin/curl "$curl_opt" -o "${workdir}/$docker_dmg" $docker_dlurl
+eval /usr/bin/curl "$curl_opt" -o "${workdir}/$docker_dmg" "$docker_dlurl"
 if [ ! -f "${workdir}/$docker_dmg" ]; then
     echo "Failed to download $docker_dmg" >&2
     /bin/rm -rf "$workdir"
