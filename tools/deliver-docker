@@ -103,28 +103,13 @@ function checkapp(){
 
 function fixUserConfig(){
     installedver="$1"
-    if [ "$installedver" = stable ]; then
-        experimental=False
-    else
-        experimental=True
-    fi
-
     username="$2"
     if [ "$username" = none ]; then
         $CMT "Nothing to do for anyone. I do not take care about user config now."
         return 0
     fi
 
-    userDockerConfig="/Users/$username/.docker/daemon.json"
     userDockerGroupConfig="/Users/$username/Library/Group Containers/group.com.docker/settings.json"
-
-    if [ -f "$userDockerConfig" ] && \
-       [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["experimental"]' < "$userDockerConfig" )" = "$experimental" ]; then
-        $CMT "$userDockerConfig is ok for $installedver. [experimental: $experimental]"
-    else
-        $CMT "Remove $( /usr/bin/dirname "$userDockerConfig" ) due to version has changed to $installedver."
-        /bin/rm -rf "$( /usr/bin/dirname "$userDockerConfig" )"
-    fi
     if [ -f "$userDockerGroupConfig" ] && \
        [ "$( /usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' < "$userDockerGroupConfig" )" = "$installedver" ]; then
         $CMT "$userDockerGroupConfig is ok for $installedver."
@@ -312,11 +297,11 @@ else
         exit 1
     fi
 
+    fixUserConfig "$release" "$currentConsoleUser"
+
     /bin/launchctl load -w "$plistfile"
     vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()' )"
     $CMT "com.docker.vmnetd $vmnetd_status"
-
-    fixUserConfig "$release" "$currentConsoleUser"
 fi
 
 # Docker companion, Kitematic install
