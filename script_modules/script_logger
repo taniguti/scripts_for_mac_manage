@@ -1,8 +1,9 @@
 #!/bin/bash
 
 SL_LOGFILE=$( /usr/bin/mktemp )
+
 function script-logger(){
-    echo "[$(/bin/date +%F" "%T)] $*" | tee -a "$SL_LOGFILE"
+    echo "[$(/bin/date +%F" "%T)] $*" | /usr/bin/tee -a "$SL_LOGFILE"
 }
 
 
