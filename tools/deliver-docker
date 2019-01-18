@@ -215,7 +215,7 @@ if [ ! -f "${workdir}/$docker_dmg" ]; then
     exit 1
 fi
 
-devfile="$( eval /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}' )"
+devfile="$( /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}' )"
 dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist 2> /dev/null )"
 if [ -z "$dmg_dockerver" ]; then
     echo "Unknown Type of Docker! Failed to get docker version." >&2
@@ -227,14 +227,14 @@ fi
 if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     $CMT "Already same version installed: $current_dockerver"
     $CMT "Nothing to do for $dockerapp."
-    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
+    eval /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
 else
     result="$( checkapp "/Volumes/Docker/Docker.app" "$docker_devid" )"
     if [ "$result" = ok ]; then
         $CMT "Docker.app: check passed."
     else
         echo "$result" >&2
-        /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
+        eval /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
         /bin/rm -rf "$workdir"
         exit 1
     fi
@@ -245,7 +245,7 @@ else
     $CMT "Install Docker version: $dmg_dockerver"
     $CMT "Copy Docker into /Applications"
     /bin/cp -af /Volumes/Docker/Docker.app "$dockerapp"
-    /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
+    eval /usr/bin/hdiutil detach "$hdiutil_opt" "$devfile"
     $CMT "Remove com.apple.quarantine from $dockerapp"
     /usr/bin/xattr -r -d com.apple.quarantine "$dockerapp"
     $CMT "Fix ownership"
