@@ -1,0 +1,3 @@
+# https://www.jamf.com/jamf-nation/discussions/7217/making-language-chooser-run-at-first-boot
+
+touch /private/var/db/.RunLanguageChooserToo

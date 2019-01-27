@@ -1,0 +1,4 @@
+#!/bin/bash
+
+defaults write /Library/Preferences/com.apple.screensaver loginWindowIdleTime 0
+/usr/libexec/PlistBuddy -c print /Library/Preferences/com.apple.screensaver.plist
