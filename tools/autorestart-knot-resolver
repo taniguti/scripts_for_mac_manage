@@ -1,11 +1,17 @@
 #!/bin/bash
 
 if [ -f /tmp/knot-resolver-working ]; then
-    STATE="$( cat /tmp/knot-resolver-working )"
+    STATE="$( /bin/cat /tmp/knot-resolver-working )"
 fi
-if [ "${STATE:-9}" -eq 0 ]; then exit 0; fi
+if [ "${STATE:-9}" -eq 0 ]; then
+    /sbin/ping -c 1 info.pretendco.net
+    RET=$?
+    if [ $RET -eq 0 ] || [ $RET -eq 2 ]; then
+        exit 0
+    fi
+fi
 
-dig www.apple.com > /dev/null 2>&1
+/usr/bin/dig www.apple.com > /dev/null 2>&1
 RET=$?
 echo "$RET" > /tmp/knot-resolver-working
 if [ $RET -eq 0 ]; then exit 0 ; fi
@@ -13,4 +19,4 @@ if [ $RET -eq 0 ]; then exit 0 ; fi
 if [ ! -f /Library/LaunchDaemons/homebrew.mxcl.knot-resolver.plist ]; then
     exit 0
 fi
-brew services restart knot-resolver
+sudo /usr/local/bin/brew services restart knot-resolver
