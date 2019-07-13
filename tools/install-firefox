@@ -177,9 +177,9 @@ if [ -z "$devFile" ]; then
     exit 1
 fi
 
-# Check after download
+# Check after downloaded
 if [ ! -d "/Volumes/Firefox/Firefox.app" ]; then
-    shLogger "Not found Firefoxapp in /Volumes/Firefox. Something wrong." 2
+    shLogger "Not found Firefox.app in /Volumes/Firefox. Something wrong." 2
     /usr/bin/hdiutil detach -quiet "$devFile"
     /bin/rm -rf "$workdir"
     exit 1
