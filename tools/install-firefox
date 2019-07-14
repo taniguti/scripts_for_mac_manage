@@ -10,7 +10,7 @@ defaultLangPackage="ja-JP"
 
 # Show help.
 if [ $# -eq 0 ]; then
-    /usr/bin/grep ^#- "$0" | cut -c 4-
+    /usr/bin/grep ^#- "$0" | /usr/bin/cut -c 4-
     exit 0
 fi
 
@@ -114,7 +114,7 @@ fi
 
 # Force install
 #- Parameter 5: Force install: yes / no (default)
-forceInstall="$( echo "$5" | tr "[:upper:]" "[:lower:]" )"
+forceInstall="$( echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]" )"
 
 # Get the latest version
 checkURL="https://www.mozilla.org/${urlLang}/firefox/new/"
@@ -137,19 +137,20 @@ if [ -d "/Applications/Firefox.app" ]; then
     currentInstalledVersion="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "/Applications/Firefox.app/Contents/Info.plist" 2> /dev/null )"
 else
     installedApp=no
+    forceInstall=no
     currentInstalledVersion="NotInstalled"
 fi
 
+if [ "${forceInstall:-no}" = yes ]; then
+    shLogger "Force install: $forceInstall"
+    currentInstalledVersion="none(ignored)"
+fi
+
 if [ -z "$currentInstalledVersion" ]; then
-    shLogger "Failed to get version number from installed application. Something wrong." 2
+    shLogger "Failed to get version number from installed application. Something wrong. Try me with force Install" 2
     exit 1
 fi
 shLogger "Current version number of installed Firefox.app: $currentInstalledVersion"
-
-if [ "${forceInstall:-no}" = yes ]; then
-    shLogger "Force install: $forceInstall"
-    currentInstalledVersion="none"
-fi
 
 if [ "$currentInstalledVersion" = "$latestVersion" ]; then
     shLogger "The latest version of Firefox is already installed."
