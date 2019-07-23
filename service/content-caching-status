@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OS_MAJOR_VERSION="$( usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
+OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
 
 if [ "$OS_MAJOR_VERSION" -ge 13 ]; then
     if AssetCacheManagerUtil isActivated > /dev/null 2>&1 ; then
