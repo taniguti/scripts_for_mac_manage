@@ -2,7 +2,7 @@
 
 if [ ! -f "$1" ]; then exit 0; fi
 
-WORKDIR=/tmp/"$( uuidgen )"
+WORKDIR="$( mktemp -d )"
 SCRIPTNAME="$( basename "$1" )"
 SERIAL="$( date +%Y%m%d-%H%M%S )"
 DEVELOPERID="$( security find-certificate -a | grep alis | grep ')'| grep  "Developer ID Installer" | awk -F= '{print $2}' | tr -d \" )"
