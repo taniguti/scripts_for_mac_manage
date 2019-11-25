@@ -37,17 +37,19 @@ if [ $IAM != root ]; then
 	usage ; exit 1
 fi
 
-computerName="$( dsconfigad -show | awk '$1 == "computername" {print $3}' | tr -d '$' )"
+computerName="$( dsconfigad -show | awk '$1 == "Computer" {print $NF}' )"
 if [ -z "$computerName" ]; then
     scriptLogging "This computer is not bound to Active Directory domain."
     scriptLogging "Nothing to do for this computer."
     exit 0
 else
     scriptLogging "ComputerID: $computerName"
-    systemsetup -setcomputername "${computerName}"
-    systemsetup -setlocalsubnetname "$(echo "${computerName}" | tr "[:upper:]" "[:lower:]")"
+    systemsetup -setcomputername "${computerName%$}"
+    systemsetup -setlocalsubnetname "$(echo "${computerName%$}" | tr "[:upper:]" "[:lower:]")"
 fi
 
+
+
 dsconfigad -remove -username "${ADADMIN}" -password "${ADADMINPASS}" 2>&1
-dsconfigad -add "${ADDOMAIN}" -username "${ADADMIN}" -password "${ADADMINPASS}" -computer "${COMPUTERID}" 2>&1
+dsconfigad -add "${ADDOMAIN}" -username "${ADADMIN}" -password "${ADADMINPASS}" -computer "${computerName%$}" 2>&1
 dsconfigad -alldomains disable -localhome enable -groups "${ADMINGROUPS:-"domain admins,enterprise admins"}" -mobile enable -mobileconfirm disable -namespace domain -preferred "${ADDOMAIN}" -restrictDDNS en99 -enablesso 2>&1
