@@ -28,7 +28,8 @@ brew install openssl
 brew link --force openssl
 
 # brew remove curl || :
-brew install --with-openssl curl
+#brew install --with-openssl curl
+brew install  curl
 brew link --force curl || :
 curl -V
 
