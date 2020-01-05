@@ -1,0 +1,91 @@
+#!/bin/bash
+
+Shlogger(){
+    local logfile scriptname timestamp label mode
+    logfile="/tmp/InstallCommandLineTools.log"
+    scriptname="$( /usr/bin/basename "$0" )"
+    timestamp="$( /bin/date "+%F %T" )"
+    mode="$2"
+    case "${mode:-1}" in
+        2 )
+            label="[error]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
+            ;;
+        * )
+            label="[info]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
+            ;;
+    esac
+}
+
+
+InstallCommandLineTools(){
+    local flag items cltinstall osVersion workfile
+
+    Shlogger "Prepare getting command line tools..."
+    flag="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+    /usr/bin/touch "$flag"
+
+    Shlogger "Check command line tools list"
+    osVersion="$( /usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}' )"
+    # macOS 10.15 or later
+    #Software Update Tool
+    #
+    #Finding available software
+    #Software Update found the following new or updated software:
+    #* Label: Command Line Tools for Xcode-11.3
+    #	Title: Command Line Tools for Xcode, Version: 11.3, Size: 224878K, Recommended: YES,
+    #* Label: Command Line Tools for Xcode-11.0
+    #	Title: Command Line Tools for Xcode, Version: 11.0, Size: 224978K, Recommended: YES,
+
+    # macOS 10.14 or earlier
+    #Software Update Tool
+    #
+    #Finding available software
+    #Software Update found the following new or updated software:
+    #   * Command Line Tools (macOS Mojave version 10.14) for Xcode-10.3
+    #	Command Line Tools (macOS Mojave version 10.14) for Xcode (10.3), 199250K [recommended]
+
+    items="$( mktemp )"
+
+    if [ "$osVersion" -ge 15 ]; then
+        /usr/sbin/softwareupdate --list --recommended | \
+        /usr/bin/grep "\* Label: Command Line Tools"  | \
+        /usr/bin/cut -c 10- > "$items"
+    else
+        /usr/sbin/softwareupdate --list --recommended | \
+        /usr/bin/grep "\* Command Line Tools"         | \
+        /usr/bin/cut -c 6- > "$items"
+    fi
+
+    if [ ! -s "$items" ]; then
+        shlogger "Not found Command line tools." 2
+        /bin/rm -f "$items" "$flag"
+        exit 1
+    fi
+
+    workfile="$( mktemp )"
+    cltinstall="$( mktemp )"
+    shlogger "Create installer script: $cltinstall"
+    echo "/usr/sbin/softwareupdate --verbose --install"  > "$workfile"
+    /usr/bin/awk '{print "\""$0"\""}' "$items" >> "$workfile"
+    /usr/bin/paste -s "$workfile" > "$cltinstall"
+
+    shlogger "Execute installer script: $cltinstall"
+    /bin/bash "$cltinstall"
+
+    /bin/rm -f "$flag" "$cltinstall" "$items" "$workfile"
+
+    Shlogger "Done."
+}
+
+xcodeCommandLineToolsPath="$( xcode-select -p )"
+if [ -z "$xcodeCommandLineToolsPath" ]   || \
+   [ ! -d "$xcodeCommandLineToolsPath" ] || \
+   [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
+    InstallCommandLineTools
+    exit 0
+fi
+
+Shlogger "No need install command line tool."
+exit 0
