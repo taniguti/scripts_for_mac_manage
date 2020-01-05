@@ -18,7 +18,6 @@ Shlogger(){
     esac
 }
 
-
 InstallCommandLineTools(){
     local flag items cltinstall osVersion workfile
 
