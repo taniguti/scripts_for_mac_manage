@@ -1,0 +1,26 @@
+#!/bin/bash
+
+target="$1"
+if [ ! -e "$target" ]; then
+    echo "Not found: $target" >&2
+    exit 1
+fi
+
+ext="$( echo "${target##*.}" | /usr/bin/tr "[:upper:]" "[:lower:]" )"
+case "${ext%/}" in
+    app )
+        result="$( /usr/sbin/spctl --assess --verbose "$target" 2>&1 | grep "$target" )"
+        ;;
+    pkg )
+        result="$( /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | grep "$target" )"
+        ;;
+    *)
+        echo "Unexpected extension: ${ext%/}" >&2
+        echo "Either app or pkg is expected." >&2
+        exit 1
+        ;;
+esac
+
+target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2> /dev/null )"
+
+echo "$result (version: ${target_version:-N/A})"
