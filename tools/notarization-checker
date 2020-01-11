@@ -1,4 +1,19 @@
 #!/bin/bash
+#-
+#- Notarization checker: (spctl wrapper)
+#- --------------------
+#- $ ./notarization-checker /path/to/hoge.app
+#- /path/to/hoge.app: accepted (version: 0.1.2)
+#- $ ./notarization-checker /path/to/fuga.app
+#- /path/to/fuga.app: rejected (version: 3.4.5)
+#- $ ./notarization-checker /path/to/piyo.pkg
+#- /path/to/piyo.pkg: accepted
+#-
+
+if [ "$#" -eq 0 ]; then
+    /usr/bin/grep '^#-' "$0" | cut -c 4-
+    exit 0
+fi
 
 target="$1"
 if [ ! -e "$target" ]; then
@@ -9,10 +24,12 @@ fi
 ext="$( echo "${target##*.}" | /usr/bin/tr "[:upper:]" "[:lower:]" )"
 case "${ext%/}" in
     app )
-        result="$( /usr/sbin/spctl --assess --verbose "$target" 2>&1 | grep "$target" )"
+        result="$( /usr/sbin/spctl --assess --verbose "$target" 2>&1 | /usr/bin/grep "$target" )"
+        target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2> /dev/null )"
+        echo "$result (version: ${target_version:-N/A})"
         ;;
     pkg )
-        result="$( /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | grep "$target" )"
+       /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | /usr/bin/grep "$target"
         ;;
     *)
         echo "Unexpected extension: ${ext%/}" >&2
@@ -20,7 +37,3 @@ case "${ext%/}" in
         exit 1
         ;;
 esac
-
-target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2> /dev/null )"
-
-echo "$result (version: ${target_version:-N/A})"
