@@ -9,6 +9,8 @@
 #- $ ./notarization-checker /path/to/piyo.pkg
 #- /path/to/piyo.pkg: accepted
 #-
+#- Item must have extension, app,kext,dmg or pkg.
+#-
 
 if [ "$#" -eq 0 ]; then
     /usr/bin/grep '^#-' "$0" | cut -c 4-
@@ -23,17 +25,25 @@ fi
 
 ext="$( echo "${target##*.}" | /usr/bin/tr "[:upper:]" "[:lower:]" )"
 case "${ext%/}" in
-    app )
-        result="$( /usr/sbin/spctl --assess --verbose "$target" 2>&1 | /usr/bin/grep "$target" )"
+    app | kext )
+        if [ "${ext%/}" = kext ]; then
+            ctype="install"
+        else
+            ctype="execute"
+        fi
+        result="$( /usr/sbin/spctl --assess --verbose --type "$ctype" "$target" 2>&1 | /usr/bin/grep "$target" )"
         target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2> /dev/null )"
         echo "$result: (version ${target_version:-N/A})"
         ;;
     pkg )
        /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | /usr/bin/grep "$target"
         ;;
+    dmg )
+       /usr/sbin/spctl --assess --verbose --type open —-context "context:primary-signature" "$target" 2>&1 | /usr/bin/grep "$target"
+        ;;
     *)
         echo "Unexpected extension: ${ext%/}" >&2
-        echo "Either app or pkg is expected." >&2
+        echo "Either app, dmg, kext or pkg is expected." >&2
         exit 1
         ;;
 esac
