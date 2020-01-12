@@ -26,7 +26,7 @@ case "${ext%/}" in
     app )
         result="$( /usr/sbin/spctl --assess --verbose "$target" 2>&1 | /usr/bin/grep "$target" )"
         target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2> /dev/null )"
-        echo "$result (version: ${target_version:-N/A})"
+        echo "$result: (version ${target_version:-N/A})"
         ;;
     pkg )
        /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | /usr/bin/grep "$target"
