@@ -1,6 +1,7 @@
 #!/bin/bash
 #-
 #- Notarization checker: (spctl wrapper)
+#- https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 #- --------------------
 #- $ ./notarization-checker /path/to/hoge.app
 #- /path/to/hoge.app: accepted (version: 0.1.2)
