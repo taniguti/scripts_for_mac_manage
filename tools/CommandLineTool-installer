@@ -45,7 +45,7 @@ InstallCommandLineTools(){
     #   * Command Line Tools (macOS Mojave version 10.14) for Xcode-10.3
     #	Command Line Tools (macOS Mojave version 10.14) for Xcode (10.3), 199250K [recommended]
 
-    items="$( mktemp )"
+    items="$( /usr/bin/mktemp )"
 
     if [ "$osVersion" -ge 15 ]; then
         /usr/sbin/softwareupdate --list --recommended | \
@@ -58,19 +58,19 @@ InstallCommandLineTools(){
     fi
 
     if [ ! -s "$items" ]; then
-        shlogger "Not found Command line tools." 2
+        Shlogger "Not found Command line tools." 2
         /bin/rm -f "$items" "$flag"
         exit 1
     fi
 
-    workfile="$( mktemp )"
-    cltinstall="$( mktemp )"
-    shlogger "Create installer script: $cltinstall"
+    workfile="$( /usr/bin/mktemp )"
+    cltinstall="$( /usr/bin/mktemp )"
+    Shlogger "Create installer script: $cltinstall"
     echo "/usr/sbin/softwareupdate --verbose --install"  > "$workfile"
     /usr/bin/awk '{print "\""$0"\""}' "$items" >> "$workfile"
     /usr/bin/paste -s "$workfile" > "$cltinstall"
 
-    shlogger "Execute installer script: $cltinstall"
+    Shlogger "Execute installer script: $cltinstall"
     /bin/bash "$cltinstall"
 
     /bin/rm -f "$flag" "$cltinstall" "$items" "$workfile"
