@@ -40,7 +40,7 @@ case "${ext%/}" in
        /usr/sbin/spctl --assess --verbose --type install "$target" 2>&1 | /usr/bin/grep "$target"
         ;;
     dmg )
-       /usr/sbin/spctl --assess --verbose --type open —-context "context:primary-signature" "$target" 2>&1 | /usr/bin/grep "$target"
+       /usr/sbin/spctl --assess --verbose --type open --context "context:primary-signature" "$target" 2>&1 | /usr/bin/grep "$target"
         ;;
     *)
         echo "Unexpected extension: ${ext%/}" >&2
