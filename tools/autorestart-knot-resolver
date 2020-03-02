@@ -1,4 +1,6 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+# https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 
 if [ ! -x /usr/local/bin/brew ] || [ ! -f /Library/LaunchDaemons/homebrew.mxcl.knot-resolver.plist ]; then
     exit 0
