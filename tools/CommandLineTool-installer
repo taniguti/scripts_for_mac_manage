@@ -4,8 +4,8 @@
 
 Shlogger(){
     local logfile scriptname timestamp label mode
-    logfile="/tmp/InstallCommandLineTools.log"
     scriptname="$( /usr/bin/basename "$0" )"
+    logfile="/tmp/${scriptname}.log"
     timestamp="$( /bin/date "+%F %T" )"
     mode="$2"
     case "${mode:-1}" in
