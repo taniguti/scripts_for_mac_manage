@@ -1,0 +1,5 @@
+#!/bin/bash
+
+localgw=$5
+
+/sbin/route add 17.0.0.0/8 $localgw
