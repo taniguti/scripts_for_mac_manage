@@ -1,9 +1,11 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+# https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 
 Shlogger(){
     local logfile scriptname timestamp label mode
-    logfile="/tmp/InstallCommandLineTools.log"
     scriptname="$( /usr/bin/basename "$0" )"
+    logfile="/tmp/${scriptname}.log"
     timestamp="$( /bin/date "+%F %T" )"
     mode="$2"
     case "${mode:-1}" in

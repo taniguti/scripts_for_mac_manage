@@ -1,4 +1,6 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+# https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 #-
 #- Usage:
 #-   remove_quarantine application_name [application_name ... ]
@@ -25,7 +27,7 @@ do
     fi
 
     OWNER=$( /usr/bin/stat -F "$DLAPP" | /usr/bin/awk '{print $3}')
-    
+
     if [ "$OWNER" = "$(/usr/bin/whoami)" ]; then
         isMyown=yes
     else
