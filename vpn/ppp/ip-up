@@ -1,5 +1,64 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+# Reference: http://www.macfreek.nl/memory/Modify_PPTP_Routing_Table
 
-localgw=$5
+Shlogger(){
+    local logfile scriptname timestamp label mode
+    scriptname="$( /usr/bin/basename "$0" )"
+    logfile="/tmp/${scriptname}.log"
+    timestamp="$( date "+%F %T" )"
+    mode="$2"
+    case "${mode:-1}" in
+        2 )
+            label="[error]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
+            ;;
+        * )
+            label="[info]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
+            ;;
+    esac
+}
 
-/sbin/route add 17.0.0.0/8 $localgw
+ifname=$1;      Shlogger "The interface name used by pppd: $ifname"
+ttyname=$2;     Shlogger "The tty device nameifname: $ttyname"
+speed=$3;       Shlogger "The tty device speed: $speed"
+localip=$4;     Shlogger "The local IP address for the interface: $localip"
+remoteip=$5;    Shlogger "The remote IP address: ${remoteip:=failed}"
+ipparam=$6;     Shlogger "The current IP address before connecting to the VPN: ${ipparam:=failed}"
+
+route_add="/tmp/route_add.$$"
+echo '#!/bin/bash' > "$route_add"
+/bin/chmod 755 "$route_add"
+
+tmpfile="$( /usr/bin/mktemp )"
+
+# Apple
+echo "17.0.0.0/8" >> "$tmpfile"
+
+# GitHub.com
+# https://help.github.com/en/github/authenticating-to-github/about-githubs-ip-addresses
+/usr/bin/curl -s https://api.github.com/meta | /usr/bin/grep "\."| \
+/usr/bin/awk -F \" '{print $2}' | /usr/bin/sort | /usr/bin/uniq >> "$tmpfile"
+
+# zoom
+/usr/bin/curl -s \
+https://support.zoom.us/hc/en-us/articles/201362683-Network-Firewall-or-Proxy-Server-Settings-for-Zoom | \
+/usr/bin/grep 'IPv6'  | /usr/bin/tr '[:blank:][a-zA-Z];&<>' '\n' | \
+/usr/bin/grep '\.' | /usr/bin/sort | /usr/bin/uniq >> "$tmpfile"
+
+Shlogger "$( /usr/bin/wc -l "$tmpfile" | /usr/bin/awk '{print $1 }' ) routes will be add by $route_add"
+
+/usr/bin/awk -v D="$ipparam" '{print "/sbin/route add "$0" "D}' "$tmpfile" | /usr/bin/sort >> "$route_add"
+
+route_del='/etc/ppp/ip-down'
+echo '#!/bin/bash' > "$route_del"
+/bin/chmod 755 "$route_del"
+/usr/bin/awk '{print "/sbin/route delete "$0}'  "$tmpfile" | /usr/bin/sort >> "$route_del"
+echo "/bin/rm -f $route_del" >> "$route_del"
+
+"$route_add"
+
+/bin/rm -f "$tmpfile"
+
+Shlogger "Done"

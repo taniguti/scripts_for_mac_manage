@@ -1,3 +1,0 @@
-#!/bin/bash
-
-/sbin/route delete 17.0.0.0/8
