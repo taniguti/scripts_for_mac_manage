@@ -1,6 +1,6 @@
 # vim:set noexpandtab :
 
-ROOTDIR := /tmp/rootdir
+ROOTDIR := /tmp/pkg-root-dir
 INSTALLDIR := /private/etc/ppp
 CMD := ip-up
 PKG := $(CMD).pkg
