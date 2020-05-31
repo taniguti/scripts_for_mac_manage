@@ -86,7 +86,7 @@ dsconfigad -alldomains disable \
             -restrictDDNS en99 \
             -enablesso 2>&1
 
-logmsg = "$( dsconfigad -add "${domaintobind}" \
+logmsg="$( dsconfigad -add "${domaintobind}" \
             -username "${ADADMIN}" \
             -password "${ADADMINPASS}" \
             -computer "$computerName" 2>&1
