@@ -71,9 +71,10 @@ systemsetup -setcomputername "$computerName"
 systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
 
 if [ "$bound" = yes ]; then
-    logmsg="$(  dsconfigad -remove -username "${ADADMIN}" -password "${ADADMINPASS}" 2>&1 )"
+    logmsg="$(  dsconfigad -leave 2>&1 )"
     if [ -n "$logmsg" ]; then
-        scriptLogging "$logmsg"
+        scriptLogging "$logmsg" 2
+        exit 1
     fi
 fi
 
@@ -84,7 +85,8 @@ logmsg="$( dsconfigad -add "${domaintobind}" \
             -computer "$computerName" 2>&1
             )"
 if [ -n "$logmsg" ]; then
-    scriptLogging "$logmsg"
+    scriptLogging "$logmsg" 2
+    exit 1
 fi
 
 dsconfigad -alldomains disable \
