@@ -52,8 +52,8 @@ if [ -z "$string" ]; then
     exit 1
 fi
 
-ADADMIN="$( echo "$string" | awk -F: '{print $1}')"
-ADADMINPASS="$( echo "$string" | awk -F: '{print $2}')"
+ADADMIN="$( echo "$string" | awk '{print $1}')"
+ADADMINPASS="$( echo "$string" | awk '{print $2}')"
 
 
 computerName="$( dsconfigad -show | grep 'Computer Account' | awk '{print $NF}' | tr -d '$' )"
