@@ -1,14 +1,11 @@
 #!/bin/bash
 #-
-#- usage
+#- usage by cli,
+#- sudo ./unbind_AD_then_bind_AD_again 1 2 3 ActiveDirectory_bind_credential Salt_for_ActiveDirectory_bind_credential ActiveDirectory_domain_name
 #-
+#- ActiveDirectory_bind_credential must be encrypted.
 #-
 
-ADADMIN="$4"
-ADADMINPASS="$5"
-ADDOMAIN="$6"
-ADMINGROUPS="$7"
-EXECDIR="$( dirname "$0" )"
 IAM="$( whoami )"
 
 function scriptLogging(){
@@ -33,23 +30,63 @@ function usage(){
     grep "^#-" "$0" | cut -c 4-
 }
 
-if [ $IAM != root ]; then
+if [ "$IAM" != root ]; then
 	usage ; exit 1
 fi
 
-computerName="$( dsconfigad -show | awk '$1 == "Computer" {print $NF}' )"
-if [ -z "$computerName" ]; then
-    scriptLogging "This computer is not bound to Active Directory domain."
-    scriptLogging "Nothing to do for this computer."
-    exit 0
+credentialstring="$4"
+salt="$5"
+domaintobind="$6"
+
+if [ -z "$credentialstring" ] || [ -z "$salt" ] || [ -z "$domaintobind" ]; then
+    usage ; exit 1
 else
-    scriptLogging "ComputerID: $computerName"
-    systemsetup -setcomputername "${computerName%$}"
-    systemsetup -setlocalsubnetname "$(echo "${computerName%$}" | tr "[:upper:]" "[:lower:]")"
+    scriptLogging "credentialstring: $credentialstring"
+    scriptLogging "salt: (I got it.)"
+    scriptLogging "Domain to bind: $domaintobind"
 fi
 
+string="$( echo "$credentialstring" |  /usr/bin/openssl enc -aes256 -d -a -A -S "$salt" -k "$domaintobind" )"
+if [ -z "$string" ]; then
+    scriptLogging "Could not decrypt $credentialstring" 2
+    exit 1
+fi
+
+ADADMIN="$( echo "$string" | awk -F: '{print $1}')"
+ADADMINPASS="$( echo "$string" | awk -F: '{print $2}')"
 
 
-dsconfigad -remove -username "${ADADMIN}" -password "${ADADMINPASS}" 2>&1
-dsconfigad -add "${ADDOMAIN}" -username "${ADADMIN}" -password "${ADADMINPASS}" -computer "${computerName%$}" 2>&1
-dsconfigad -alldomains disable -localhome enable -groups "${ADMINGROUPS:-"domain admins,enterprise admins"}" -mobile enable -mobileconfirm disable -namespace domain -preferred "${ADDOMAIN}" -restrictDDNS en99 -enablesso 2>&1
+computerName="$( dsconfigad -show | grep 'Computer Account' | awk '{print $NF}' | tr -d '$' )"
+if [ -z "$computerName" ]; then
+    # Jamf argument #2 is computer name.
+    computerName="$2"
+    bound=no
+else
+    bound=yes
+fi
+
+scriptLogging "ComputerID: $computerName"
+
+systemsetup -setcomputername "$computerName"
+systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
+
+if [ "$bound" = yes ]; then
+    logmsg="$(  dsconfigad -remove -username "${ADADMIN}" -password "${ADADMINPASS}" 2>&1 )"
+    if [ -n "$logmsg" ]; then
+        scriptLogging "$logmsg"
+    fi
+fi
+
+dsconfigad -add "${ADDOMAIN}" \
+            -username "${ADADMIN}" \
+            -password "${ADADMINPASS}" \
+            -computer "$computerName" 2>&1
+
+dsconfigad -alldomains disable \
+            -localhome enable \
+            -mobile enable \
+            -mobileconfirm disable \
+            -namespace domain \
+            -preferred "${ADDOMAIN}" \
+            -restrictDDNS en99 \
+            -enablesso 2>&1

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+tuser=$3
+tgroup=$4
+
+## Functions
+Shlogger(){
+    #
+    # Import form script-modules/bash_function_shlogger
+    #
+    # `Shlogger "your message"` then logging file and put it std-out.
+    # `Shlogger "your message" 2` then logging file and put it std-err.
+    # Other than 2 is ignored.
+    local logfile scriptname timestamp label mode
+    logfile="/tmp/add-user-to-group.log"
+    scriptname="$( /usr/bin/basename "$0" )"
+    timestamp="$( /bin/date "+%F %T" )"
+    mode="$2"
+    case "${mode:-1}" in
+        2 )
+            label="[error]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
+            ;;
+        * )
+            label="[info]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
+            ;;
+    esac
+}
+
+# /usr/bin/dsmemberutil checkmembership -U username -G groupname
+# -> user is a member of the group
+# -> user is not a member of the group
+# Return code is 0 in both.
+# if either user or group is not found,
+# -> [User|Group| not found.
+# Return code is 7.
+chk="$( /usr/bin/dsmemberutil checkmembership -U "$tuser" -G "$tgroup" 2> /dev/null | /usr/bin/awk '{print $3}')"
+case "$chk" in
+    a )
+        Shlogger "$tuser is already a member of the group: $tgroup"
+        Shlogger "Nothing to do."
+        exit 0
+        ;;
+    not )
+        Shlogger "Put $tuser as a member of the group: $tgroup"
+        dseditgroup -n . -o edit -a "$tuser" -t user "$tgroup"
+        ;;
+    * )
+        Shelloger "Not found $tuser and/or $tgroup." 2
+        exit 1
+        ;;
+esac
