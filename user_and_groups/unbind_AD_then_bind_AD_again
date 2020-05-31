@@ -77,16 +77,21 @@ if [ "$bound" = yes ]; then
     fi
 fi
 
-dsconfigad -add "${ADDOMAIN}" \
-            -username "${ADADMIN}" \
-            -password "${ADADMINPASS}" \
-            -computer "$computerName" 2>&1
-
 dsconfigad -alldomains disable \
             -localhome enable \
             -mobile enable \
             -mobileconfirm disable \
             -namespace domain \
-            -preferred "${ADDOMAIN}" \
+            -preferred "${domaintobind}" \
             -restrictDDNS en99 \
             -enablesso 2>&1
+
+logmsg = "$( dsconfigad -add "${domaintobind}" \
+            -username "${ADADMIN}" \
+            -password "${ADADMINPASS}" \
+            -computer "$computerName" 2>&1
+            )"
+if [ -n "$logmsg" ]; then
+    scriptLogging "$logmsg"
+fi
+scriptLogging "Done."
