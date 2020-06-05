@@ -1,12 +1,29 @@
 #!/bin/bash
 #-
 #- usage by cli,
-#- sudo ./unbind_AD_then_bind_AD_again 1 2 3 ActiveDirectory_bind_credential Salt_for_ActiveDirectory_bind_credential ActiveDirectory_domain_name
+#- sudo ./unbind_AD_then_bind_AD_again 1 $( hostname -s ) 3 ActiveDirectory_bind_credential Salt_for_ActiveDirectory_bind_credential ActiveDirectory_domain_name
 #-
 #- ActiveDirectory_bind_credential must be encrypted.
 #-
+## How to create ActiveDirectory_bind_credential.
+##  Get Salt string.
+##   $ /usr/bin/openssl rand -hex 8
+##   5441e9434026ffd6
+##
+## Create ActiveDirectory_bind_credential with Salt and domain name to bind.
+##
+## - Bind user: ladmin
+## - Bind user password: hogepiyo
+## - domain name to bind: vmnet3.local
+##
+## $ echo "ladmin hogepiyo" | /usr/bin/openssl enc -aes256 -a -A -S 5441e9434026ffd6 -k 5441e9434026ffd6 -k vmnet3.local
+## U2FsdGVkX19UQelDQCb/1psLeQGQn0rwQ7/gg3zOIu0=
+##
+## The 'U2FsdGVkX19UQelDQCb/1psLeQGQn0rwQ7/gg3zOIu0=' is ActiveDirectory_bind_credential.
+##
 
 IAM="$( whoami )"
+stroke="/System/Library/CoreServices/Applications/Network Utility.app/Contents/Resources/stroke"
 
 function scriptLogging(){
     local logfile scriptname timestamp label mode
@@ -38,6 +55,12 @@ credentialstring="$4"
 salt="$5"
 domaintobind="$6"
 
+if [ ! -x "$stroke" ]; then
+    scriptLogging "Not found: $stroke" 2
+    scriptLogging "Abort." 2
+    exit 1
+fi
+
 if [ -z "$credentialstring" ] || [ -z "$salt" ] || [ -z "$domaintobind" ]; then
     usage ; exit 1
 else
@@ -55,7 +78,6 @@ fi
 ADADMIN="$( echo "$string" | awk '{print $1}')"
 ADADMINPASS="$( echo "$string" | awk '{print $2}')"
 
-
 computerName="$( dsconfigad -show | grep 'Computer Account' | awk '{print $NF}' | tr -d '$' )"
 if [ -z "$computerName" ]; then
     # Jamf argument #2 is computer name.
@@ -66,9 +88,32 @@ else
 fi
 
 scriptLogging "ComputerID: $computerName"
+if [ "$computerName" != "$( systemsetup -getlocalsubnetname | awk '{print $NF}' )" ]; then
+    scriptLogging "Set computer name to ${computerName}."
+    systemsetup -setcomputername "$computerName"
+    systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
+fi
 
-systemsetup -setcomputername "$computerName"
-systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
+scriptLogging "Check if connectability to active directory domain..."
+statuse=NG
+for s in $( dig _ldap._tcp."$domaintobind" srv +short | awk '{print $NF}' )
+do
+    "$stroke" "$s" 389 389 > /dev/null 2>&1 &
+    sleep 5
+    if ps $! > /dev/null ; then
+        kill -9 $!
+        scriptLogging "Timeout: $s TCP/389" 2
+    else
+        scriptLogging "Access check passed: $s TCP/389"
+        status=OK
+        break
+    fi
+done
+
+if [ "$status" != OK ]; then
+    scriptLogging "Abort due to failed to talk with Active Directory domain server." 2
+    exit 1
+fi
 
 if [ "$bound" = yes ]; then
     logmsg="$(  dsconfigad -leave 2>&1 )"
