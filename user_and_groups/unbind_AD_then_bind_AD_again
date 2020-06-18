@@ -5,7 +5,9 @@
 #-
 #- ActiveDirectory_bind_credential must be encrypted.
 #-
+##-----------
 ## How to create ActiveDirectory_bind_credential.
+##-----------
 ##  Get Salt string.
 ##   $ /usr/bin/openssl rand -hex 8
 ##   5441e9434026ffd6
@@ -16,10 +18,10 @@
 ## - Bind user password: hogepiyo
 ## - domain name to bind: vmnet3.local
 ##
-## $ echo "ladmin hogepiyo" | /usr/bin/openssl enc -aes256 -a -A -S 5441e9434026ffd6 -k 5441e9434026ffd6 -k vmnet3.local
-## U2FsdGVkX19UQelDQCb/1psLeQGQn0rwQ7/gg3zOIu0=
+## $ echo "ladmin hogepiyo" | /usr/bin/openssl enc -aes256 -a -A -S 5441e9434026ffd6 -k vmnet3.local
+## U2FsdGVkX19UQelDQCb/1iVrsblTiCdzO9JK5eRXCcJpWGJPMC4DbH/trZGcCaHU
 ##
-## The 'U2FsdGVkX19UQelDQCb/1psLeQGQn0rwQ7/gg3zOIu0=' is ActiveDirectory_bind_credential.
+## The 'U2FsdGVkX19UQelDQCb/1iVrsblTiCdzO9JK5eRXCcJpWGJPMC4DbH/trZGcCaHU' is ActiveDirectory_bind_credential.
 ##
 
 IAM="$( whoami )"
