@@ -97,7 +97,7 @@ if [ "$computerName" != "$( systemsetup -getlocalsubnetname | awk '{print $NF}' 
 fi
 
 scriptLogging "Check if connectability to active directory domain..."
-statuse=NG
+status=NG
 for s in $( dig _ldap._tcp."$domaintobind" srv +short | awk '{print $NF}' )
 do
     "$stroke" "$s" 389 389 > /dev/null 2>&1 &
