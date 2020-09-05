@@ -1,5 +1,15 @@
-OS_PRODUCT_NAME="$( usr/bin/sw_vers -productName )"
-OS_PRODUCT_VERSION="$( usr/bin/sw_vers -productVersion )"
-OS_PRODUCT_BUILD="$( usr/bin/sw_vers -buildVersion )"
-OS_MAJOR_VERSION="$( usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
-OS_MINOR_VERSION="$( usr/bin/sw_vers -productVersion | awk -F. '{print $3}' )"
+#!/bin/bash
+
+OS_PRODUCT_NAME="$( /usr/bin/sw_vers -productName )"
+OS_PRODUCT_VERSION="$( /usr/bin/sw_vers -productVersion )"
+OS_PRODUCT_BUILD="$( /usr/bin/sw_vers -buildVersion )"
+OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
+OS_MINOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $3}' )"
+OS_VERSION_NUM="$( /usr/bin/sw_vers -productVersion | awk -F. 'N = $1 * 10000 + $2 * 100 + $3 { print N }' )"
+
+echo OS_PRODUCT_NAME: $OS_PRODUCT_NAME
+echo OS_PRODUCT_VERSION: $OS_PRODUCT_VERSION
+echo OS_PRODUCT_BUILD: $OS_PRODUCT_BUILD
+echo OS_MAJOR_VERSION: $OS_MAJOR_VERSION
+echo OS_MINOR_VERSION: $OS_MINOR_VERSION
+echo OS_VERSION_NUM: $OS_VERSION_NUM
