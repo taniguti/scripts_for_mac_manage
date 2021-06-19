@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ `whoami` != root ]; then exit 1 ;fi
+/usr/libexec/configureLocalKDC
+R=$?
+echo `date +%F-%X` "/usr/libexec/configureLocalKDC : $R" >> /tmp/do_configureLocalKDC.log
+exit $R
