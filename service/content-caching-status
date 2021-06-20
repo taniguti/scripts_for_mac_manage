@@ -1,15 +1,15 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
-
-if [ "$OS_MAJOR_VERSION" -ge 13 ]; then
-    if AssetCacheManagerUtil isActivated > /dev/null 2>&1 ; then
+OS_VERSION_NUM="$(/usr/bin/sw_vers -productVersion | awk -F. 'N = $1 * 10000 + $2 * 100 + $3 { print N }')"
+if [ "$OS_VERSION_NUM" -ge 101300 ]; then
+    if AssetCacheManagerUtil isActivated >/dev/null 2>&1; then
         echo "on"
     else
         echo "off"
     fi
-elif [ "$OS_MAJOR_VERSION" -ge 8 ]; then
-    if [ X"$( serveradmin status asset | awk '{print $NF}' | tr -d \" )" = XRUNNING ]; then
+elif [ "$OS_VERSION_NUM" -ge 100800 ]; then
+    if [ X"$(serveradmin status asset | awk '{print $NF}' | tr -d \")" = XRUNNING ]; then
         echo "on"
     else
         echo "off"
