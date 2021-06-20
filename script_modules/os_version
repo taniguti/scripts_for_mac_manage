@@ -1,15 +1,71 @@
 #!/bin/bash
 
-OS_PRODUCT_NAME="$( /usr/bin/sw_vers -productName )"
-OS_PRODUCT_VERSION="$( /usr/bin/sw_vers -productVersion )"
-OS_PRODUCT_BUILD="$( /usr/bin/sw_vers -buildVersion )"
-OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
-OS_MINOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $3}' )"
-OS_VERSION_NUM="$( /usr/bin/sw_vers -productVersion | awk -F. 'N = $1 * 10000 + $2 * 100 + $3 { print N }' )"
+OS_PRODUCT_NAME="$(/usr/bin/sw_vers -productName)"
+OS_PRODUCT_VERSION="$(/usr/bin/sw_vers -productVersion)"
+OS_PRODUCT_BUILD="$(/usr/bin/sw_vers -buildVersion)"
+OS_VERSION_NUM="$(/usr/bin/sw_vers -productVersion | awk -F. 'N = $1 * 10000 + $2 * 100 + $3 { print N }')"
+KERNEL_RELEASE="$(/usr/bin/uname -r)"
 
-echo OS_PRODUCT_NAME: $OS_PRODUCT_NAME
-echo OS_PRODUCT_VERSION: $OS_PRODUCT_VERSION
-echo OS_PRODUCT_BUILD: $OS_PRODUCT_BUILD
-echo OS_MAJOR_VERSION: $OS_MAJOR_VERSION
-echo OS_MINOR_VERSION: $OS_MINOR_VERSION
-echo OS_VERSION_NUM: $OS_VERSION_NUM
+case "$(/usr/bin/uname -r | awk -F. '{print $1}')" in
+    21)
+        OS_CODE_NAME="Monterey"
+        ;;
+    20)
+        OS_CODE_NAME="Big Sur"
+        ;;
+    19)
+        OS_CODE_NAME="Catalina"
+        ;;
+    18)
+        OS_CODE_NAME="Mojave"
+        ;;
+    17)
+        OS_CODE_NAME="High Sierra"
+        ;;
+    16)
+        OS_CODE_NAME="Sierra"
+        ;;
+    15)
+        OS_CODE_NAME="El Capitan"
+        ;;
+    14)
+        OS_CODE_NAME="Yosemite"
+        ;;
+    13)
+        OS_CODE_NAME="Mavericks"
+        ;;
+    12)
+        OS_CODE_NAME="Mountain Lion"
+        ;;
+    11)
+        OS_CODE_NAME="Lion"
+        ;;
+    10)
+        OS_CODE_NAME="Snow Leopard"
+        ;;
+    9)
+        OS_CODE_NAME="Leopard"
+        ;;
+    8)
+        OS_CODE_NAME="Tiger"
+        ;;
+    7)
+        OS_CODE_NAME="Panther"
+        ;;
+    6)
+        OS_CODE_NAME="Jaguar"
+        ;;
+    5)
+        OS_CODE_NAME="Puma"
+        ;;
+    4)
+        OS_CODE_NAME="Cheetah"
+        ;;
+esac
+
+echo OS_PRODUCT_NAME: "$OS_PRODUCT_NAME"
+echo OS_CODE_NAME: "$OS_CODE_NAME"
+echo OS_PRODUCT_VERSION: "$OS_PRODUCT_VERSION"
+echo OS_VERSION_NUM: "$OS_VERSION_NUM"
+echo OS_PRODUCT_BUILD: "$OS_PRODUCT_BUILD"
+echo KERNEL_RELEASE: "$KERNEL_RELEASE"
