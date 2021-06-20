@@ -1,3 +1,2 @@
 # https://www.jamf.com/jamf-nation/discussions/7217/making-language-chooser-run-at-first-boot
-
-touch /private/var/db/.RunLanguageChooserToo
+touch "/Volumes/Macintosh HD/private/var/db/.RunLanguageChooserToo"
