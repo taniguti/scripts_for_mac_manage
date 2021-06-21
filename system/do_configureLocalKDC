@@ -1,7 +1,8 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-if [ `whoami` != root ]; then exit 1 ;fi
+if [ "$(whoami)" != root ]; then exit 1; fi
 /usr/libexec/configureLocalKDC
 R=$?
-echo `date +%F-%X` "/usr/libexec/configureLocalKDC : $R" >> /tmp/do_configureLocalKDC.log
-exit $R
+echo "$(date +%F-%X): /usr/libexec/configureLocalKDC : $R" | tee -a /tmp/do_configureLocalKDC.log
+exit "$R"

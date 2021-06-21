@@ -1,25 +1,6 @@
 #!/bin/sh
-# Takanori TANIGUCHI
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-TMPDIR="/tmp/`uuidgen`"
-TMPFILE="${TMPDIR}/file_$$"
-mkdir "${TMPDIR}"
-
-networksetup -listnetworkserviceorder| grep -v "network service"  | while read line 
-do 
-	if [ 1 = `echo $line| egrep -c ^$` ]; then
-		echo ${SV} >> "${TMPFILE}_0.txt"
-		SV=""
-	else	
-		SV="${SV}${line} " 
-	fi
+for d in $(networksetup -listnetworkserviceorder | grep '(Hardware Port:' | awk '$(NF - 1) == "Device:" {print $NF}' | tr -d ')' | sort); do
+    echo "${d}: $(networksetup -listnetworkserviceorder | grep -B 1 "${d})" | head -1 | awk '{$1 = ""; print }')" | xargs
 done
-
-networksetup -listallnetworkservices | grep -v "network service" | while read line
-do
-	DEVICE_NAME=`grep "$line" "${TMPFILE}_0.txt" | awk -F": " '{print $3}' | sed s/\)//g| uniq`
-	echo "${DEVICE_NAME},${line}" >> "${TMPFILE}_1.txt"
-done
-
-cat "${TMPFILE}_1.txt"
-rm -rf ${TMPDIR}

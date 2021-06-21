@@ -1,7 +1,8 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-if latestbackupday="$( tmutil latestbackup 2> /dev/null)" ; then
-    echo "$latestbackupday" | awk -F / '{print $NF}' 
+if latestbackupday="$(tmutil latestbackup 2>/dev/null)"; then
+    echo "$latestbackupday" | awk -F / '{print $NF}'
 else
     echo 'N/A'
 fi

@@ -1,3 +1,4 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-df -lg | awk '$NF == "/" {print $4}'
+diskutil info / | grep "Container Free Space: " | awk -F: '{$1 = "";print }' | awk '{print $1,$2}'

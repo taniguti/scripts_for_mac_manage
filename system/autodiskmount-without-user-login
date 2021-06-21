@@ -2,16 +2,16 @@
 # vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
 if [ "$(whoami)" = root ]; then
-	doSUDO=''
+    doSUDO=''
 else
-	doSUDO='sudo'
+    doSUDO='sudo'
 fi
 
 "$doSUDO" defaults write \
-	/Library/Preferences/SystemConfiguration/autodiskmount \
-	AutomountDisksWithoutUserLogin \
-	-bool true
+    /Library/Preferences/SystemConfiguration/autodiskmount \
+    AutomountDisksWithoutUserLogin \
+    -bool true
 
 echo -n "AutomountDisksWithoutUserLogin: "
 /usr/libexec/PlistBuddy -c "print AutomountDisksWithoutUserLogin" \
-	/Library/Preferences/SystemConfiguration/autodiskmount.plist
+    /Library/Preferences/SystemConfiguration/autodiskmount.plist

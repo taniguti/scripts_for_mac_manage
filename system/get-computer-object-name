@@ -1,4 +1,5 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
 OBJECT_NAME="$( dsconfigad -show | grep 'Account' | awk '{print $NF}' | tr -d $)"
 echo "${OBJECT_NAME:-'N/A'}"

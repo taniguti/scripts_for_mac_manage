@@ -1,13 +1,14 @@
 #!/bin/bash
+# vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
 if [ -f /Library/Preferences/com.apple.TimeMachine.plist ]; then
-    TMSTATUS="$( /usr/libexec/PlistBuddy -c "print AutoBackup" /Library/Preferences/com.apple.TimeMachine.plist)"
+    TMSTATUS="$(/usr/libexec/PlistBuddy -c "print AutoBackup" /Library/Preferences/com.apple.TimeMachine.plist)"
 fi
-case "${TMSTATUS:-false}" in 
-true)
-    echo "on"
-    ;;
-*)
-    echo "off"
-    ;;
+case "${TMSTATUS:-false}" in
+    true)
+        echo "on"
+        ;;
+    *)
+        echo "off"
+        ;;
 esac
