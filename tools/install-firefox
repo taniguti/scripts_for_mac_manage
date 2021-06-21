@@ -1,4 +1,5 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 #-
 #- install-firefox
 #-  Install or update Firefox via JamfPro policy.
@@ -14,7 +15,7 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
-function checkLang(){
+function checkLang() {
     local givenLang defaultLang
     defaultLang="$1"
     givenLang="$2"
@@ -29,45 +30,45 @@ function checkLang(){
         defaultLang='ja-JP-mac'
     fi
 
-    if [ "$( /usr/bin/curl -s "https://www.mozilla.org/en-US/firefox/all/" | \
-        /usr/bin/grep "firefox-latest" | \
-        /usr/bin/grep 'os=osx'| \
-        /usr/bin/awk -F\" '{print $2}'| \
-        /usr/bin/awk -F= '{print $NF}' |
-        /usr/bin/awk -v L="$givenLang" '$0 == L' | \
-        /usr/bin/wc -l )" -eq 1 ]; then
+    if [ "$( /usr/bin/curl -s "https://www.mozilla.org/en-US/firefox/all/" \
+        | /usr/bin/grep "firefox-latest" \
+        | /usr/bin/grep 'os=osx' \
+        | /usr/bin/awk -F\" '{print $2}' \
+        | /usr/bin/awk -F= '{print $NF}' \
+        | /usr/bin/awk -v L="$givenLang" '$0 == L' \
+        | /usr/bin/wc -l)" -eq 1 ]; then
         echo "$givenLang"
     else
         echo "$defaultLang"
     fi
 }
 
-function checkApp(){
+function checkApp() {
     local PathToApp DeveloperId IsSigned DEVID ROOTCA APPLEROOTCA TeamIdentifier
     PathToApp="$1"
     DeveloperId="$2"
 
     if [ -x "/usr/local/bin/santactl" ]; then
-        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$PathToApp" )"
+        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$PathToApp")"
         if [ "$IsSigned" != "Yes" ]; then
             echo "$PathToApp is not code-signed."
             return 1
         fi
 
-        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp" )"
+        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp")"
         if [ "$DEVID" != "$DeveloperId" ]; then
             echo "$PathToApp: Developer ID is $DEVID. But it must be $DeveloperId."
             return 1
         fi
 
-        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$PathToApp" )"
-        APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app )"
+        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$PathToApp")"
+        APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app)"
         if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
             echo "$PathToApp: ROOT CA of code-signing is not match."
             return 1
         fi
     elif [ -x /usr/bin/codesign ]; then
-        TeamIdentifier="$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/awk -F= '$1 == "TeamIdentifier" {print $2}' )"
+        TeamIdentifier="$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/awk -F= '$1 == "TeamIdentifier" {print $2}')"
         if [ "$TeamIdentifier" != "$DeveloperId" ]; then
             echo "$PathToApp: TeamIdentifier is $TeamIdentifier. But it must be $DeveloperId."
             return 1
@@ -82,18 +83,18 @@ function checkApp(){
     return 0
 }
 
-function shLogger(){
+function shLogger() {
     local logfile scriptname timestamp label mode
-    scriptname="$( /usr/bin/basename "$0" )"
-    timestamp="$( /bin/date "+%F %T" )"
+    scriptname="$( /usr/bin/basename "$0")"
+    timestamp="$( /bin/date "+%F %T")"
     logfile="/tmp/${scriptname}.log"
     mode="$2"
     case "${mode:-1}" in
-        2 )
+        2)
             label="[error]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
             ;;
-        * )
+        *)
             label="[info]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
             ;;
@@ -104,7 +105,7 @@ function shLogger(){
 #- Parameter 4: Language Package of Firefox.app. ja-JP (default) / en-US etc
 shLogger "Given Language: ${4:-"N/A"}"
 shLogger "Default Language: $defaultLangPackage"
-languagePack="$( checkLang "$defaultLangPackage" "$4" )"
+languagePack="$( checkLang "$defaultLangPackage" "$4")"
 shLogger "Language to install: $languagePack"
 if [ "$languagePack" = 'ja-JP-mac' ]; then
     urlLang='ja'
@@ -114,15 +115,15 @@ fi
 
 # Force install
 #- Parameter 5: Force install: yes / no (default)
-forceInstall="$( echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]" )"
+forceInstall="$( echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]")"
 
 # Get the latest version
 checkURL="https://www.mozilla.org/${urlLang}/firefox/new/"
-latestVersion="$(/usr/bin/curl -s "$checkURL" | \
-    /usr/bin/grep 'data-latest-firefox' | \
-    /usr/bin/tr "[:blank:]" '\n' | \
-    /usr/bin/tr -d '"' | \
-    /usr/bin/awk -F= '$1 == "data-latest-firefox" {print $NF}' )"
+latestVersion="$(/usr/bin/curl -s "$checkURL" \
+    | /usr/bin/grep 'data-latest-firefox' \
+    | /usr/bin/tr "[:blank:]" '\n' \
+    | /usr/bin/tr -d '"' \
+    | /usr/bin/awk -F= '$1 == "data-latest-firefox" {print $NF}')"
 
 if [ -z "$latestVersion" ]; then
     shLogger "Failed to get the latest version number of Firefox for $languagePack" 2
@@ -134,7 +135,7 @@ shLogger "The latest version number of Firefox($languagePack): $latestVersion"
 # Get the version number of installed Firefox.app
 if [ -d "/Applications/Firefox.app" ]; then
     installedApp=yes
-    currentInstalledVersion="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "/Applications/Firefox.app/Contents/Info.plist" 2> /dev/null )"
+    currentInstalledVersion="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "/Applications/Firefox.app/Contents/Info.plist" 2>/dev/null)"
 else
     installedApp=no
     forceInstall=no
@@ -161,7 +162,7 @@ fi
 # Download the latest version
 downloadURL="https://download-installer.cdn.mozilla.net/pub/firefox/releases/${latestVersion}/mac/${languagePack}/Firefox%20${latestVersion}.dmg"
 shLogger "Download URL: $downloadURL"
-workdir="$( /usr/bin/mktemp -d )"
+workdir="$( /usr/bin/mktemp -d)"
 dmgfile="${workdir}/Firefox.dmg"
 
 /usr/bin/curl -s -o "$dmgfile" "$downloadURL"
@@ -171,7 +172,7 @@ if [ ! -f  "$dmgfile" ]; then
     exit 1
 fi
 
-devFile="$( /usr/bin/hdiutil attach -nobrowse "$dmgfile" | /usr/bin/grep Firefox | /usr/bin/awk '{print $1}' )"
+devFile="$( /usr/bin/hdiutil attach -nobrowse "$dmgfile" | /usr/bin/grep Firefox | /usr/bin/awk '{print $1}')"
 if [ -z "$devFile" ]; then
     shLogger "Failed to mount disk image from $dmgfile" 2
     /bin/rm -rf "$workdir"
@@ -187,14 +188,14 @@ if [ ! -d "/Volumes/Firefox/Firefox.app" ]; then
 fi
 
 DeveloperID="43AQ936H96"
-result="$( checkApp "/Volumes/Firefox/Firefox.app" "$DeveloperID" )"
+result="$( checkApp "/Volumes/Firefox/Firefox.app" "$DeveloperID")"
 if [ "$result" = ok ]; then
     shLogger "Downloaded Firefox.app: check passed."
 else
     shLogger "$result" 2
-   /usr/bin/hdiutil detach -quiet "$devFile"
-   /bin/rm -rf "$workdir"
-   exit 1
+    /usr/bin/hdiutil detach -quiet "$devFile"
+    /bin/rm -rf "$workdir"
+    exit 1
 fi
 
 # Install or update Firefox

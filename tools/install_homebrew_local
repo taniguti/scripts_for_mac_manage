@@ -36,4 +36,5 @@ brew install  curl
 brew link --force curl || :
 curl -V
 
+# shellcheck disable=SC2016
 echo 'Add export PATH="${HOMEBREW_PREFIX}/bin:${PATH}" in your .bashrc'

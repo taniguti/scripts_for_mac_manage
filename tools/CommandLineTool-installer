@@ -2,25 +2,25 @@
 # vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 # https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 
-Shlogger(){
+Shlogger() {
     local logfile scriptname timestamp label mode
-    scriptname="$( /usr/bin/basename "$0" )"
+    scriptname="$( /usr/bin/basename "$0")"
     logfile="/tmp/${scriptname}.log"
-    timestamp="$( /bin/date "+%F %T" )"
+    timestamp="$( /bin/date "+%F %T")"
     mode="$2"
     case "${mode:-1}" in
-        2 )
+        2)
             label="[error]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
             ;;
-        * )
+        *)
             label="[info]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
             ;;
     esac
 }
 
-InstallCommandLineTools(){
+InstallCommandLineTools() {
     local flag items cltinstall osVersion workfile
 
     Shlogger "Prepare getting command line tools..."
@@ -28,7 +28,7 @@ InstallCommandLineTools(){
     /usr/bin/touch "$flag"
 
     Shlogger "Check command line tools list"
-    osVersion="$( /usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}' )"
+    osVersion="$( /usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}')"
     # macOS 10.15 or later
     #Software Update Tool
     #
@@ -47,16 +47,16 @@ InstallCommandLineTools(){
     #   * Command Line Tools (macOS Mojave version 10.14) for Xcode-10.3
     #	Command Line Tools (macOS Mojave version 10.14) for Xcode (10.3), 199250K [recommended]
 
-    items="$( /usr/bin/mktemp )"
+    items="$( /usr/bin/mktemp)"
 
     if [ "$osVersion" -ge 15 ]; then
-        /usr/sbin/softwareupdate --list --recommended | \
-        /usr/bin/grep "\* Label: Command Line Tools"  | \
-        /usr/bin/cut -c 10- > "$items"
+        /usr/sbin/softwareupdate --list --recommended \
+            | /usr/bin/grep "\* Label: Command Line Tools" \
+            | /usr/bin/cut -c 10- >"$items"
     else
-        /usr/sbin/softwareupdate --list --recommended | \
-        /usr/bin/grep "\* Command Line Tools"         | \
-        /usr/bin/cut -c 6- > "$items"
+        /usr/sbin/softwareupdate --list --recommended \
+            | /usr/bin/grep "\* Command Line Tools" \
+            | /usr/bin/cut -c 6- >"$items"
     fi
 
     if [ ! -s "$items" ]; then
@@ -65,12 +65,12 @@ InstallCommandLineTools(){
         exit 1
     fi
 
-    workfile="$( /usr/bin/mktemp )"
-    cltinstall="$( /usr/bin/mktemp )"
+    workfile="$( /usr/bin/mktemp)"
+    cltinstall="$( /usr/bin/mktemp)"
     Shlogger "Create installer script: $cltinstall"
-    echo "/usr/sbin/softwareupdate --verbose --install"  > "$workfile"
-    /usr/bin/awk '{print "\""$0"\""}' "$items" >> "$workfile"
-    /usr/bin/paste -s "$workfile" > "$cltinstall"
+    echo "/usr/sbin/softwareupdate --verbose --install"  >"$workfile"
+    /usr/bin/awk '{print "\""$0"\""}' "$items" >>"$workfile"
+    /usr/bin/paste -s "$workfile" >"$cltinstall"
 
     Shlogger "Execute installer script: $cltinstall"
     /bin/bash "$cltinstall"
@@ -80,10 +80,10 @@ InstallCommandLineTools(){
     Shlogger "Done."
 }
 
-xcodeCommandLineToolsPath="$( xcode-select -p )"
-if [ -z "$xcodeCommandLineToolsPath" ]   || \
-   [ ! -d "$xcodeCommandLineToolsPath" ] || \
-   [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
+xcodeCommandLineToolsPath="$( xcode-select -p)"
+if [ -z "$xcodeCommandLineToolsPath" ] \
+    || [ ! -d "$xcodeCommandLineToolsPath" ] \
+    || [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
     InstallCommandLineTools
     exit 0
 fi
