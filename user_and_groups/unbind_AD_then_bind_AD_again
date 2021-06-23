@@ -24,33 +24,34 @@
 ## The 'U2FsdGVkX19UQelDQCb/1iVrsblTiCdzO9JK5eRXCcJpWGJPMC4DbH/trZGcCaHU' is ActiveDirectory_bind_credential.
 ##
 
-IAM="$( whoami )"
+IAM="$(whoami)"
 stroke="/System/Library/CoreServices/Applications/Network Utility.app/Contents/Resources/stroke"
 
-function scriptLogging(){
+function scriptLogging() {
     local logfile scriptname timestamp label mode
     logfile="/tmp/unbind_AD_then_bind_AD.log"
-    scriptname="$( /usr/bin/basename "$0" )"
-    timestamp="$( /bin/date "+%F %T" )"
+    scriptname="$(/usr/bin/basename "$0")"
+    timestamp="$(/bin/date "+%F %T")"
     mode="$2"
     case "${mode:-1}" in
-        2 )
+        2)
             label="[error]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
             ;;
-        * )
+        *)
             label="[info]"
             echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
             ;;
     esac
 }
 
-function usage(){
+function usage() {
     grep "^#-" "$0" | cut -c 4-
 }
 
 if [ "$IAM" != root ]; then
-	usage ; exit 1
+    usage
+    exit 1
 fi
 
 credentialstring="$4"
@@ -64,23 +65,24 @@ if [ ! -x "$stroke" ]; then
 fi
 
 if [ -z "$credentialstring" ] || [ -z "$salt" ] || [ -z "$domaintobind" ]; then
-    usage ; exit 1
+    usage
+    exit 1
 else
     scriptLogging "credentialstring: $credentialstring"
     scriptLogging "salt: (I got it.)"
     scriptLogging "Domain to bind: $domaintobind"
 fi
 
-string="$( echo "$credentialstring" |  /usr/bin/openssl enc -aes256 -d -a -A -S "$salt" -k "$domaintobind" )"
+string="$(echo "$credentialstring" | /usr/bin/openssl enc -aes256 -d -a -A -S "$salt" -k "$domaintobind")"
 if [ -z "$string" ]; then
     scriptLogging "Could not decrypt $credentialstring" 2
     exit 1
 fi
 
-ADADMIN="$( echo "$string" | awk '{print $1}')"
-ADADMINPASS="$( echo "$string" | awk '{print $2}')"
+ADADMIN="$(echo "$string" | awk '{print $1}')"
+ADADMINPASS="$(echo "$string" | awk '{print $2}')"
 
-computerName="$( dsconfigad -show | grep 'Computer Account' | awk '{print $NF}' | tr -d '$' )"
+computerName="$(dsconfigad -show | grep 'Computer Account' | awk '{print $NF}' | tr -d '$')"
 if [ -z "$computerName" ]; then
     # Jamf argument #2 is computer name.
     computerName="$2"
@@ -90,7 +92,7 @@ else
 fi
 
 scriptLogging "ComputerID: $computerName"
-if [ "$computerName" != "$( systemsetup -getlocalsubnetname | awk '{print $NF}' )" ]; then
+if [ "$computerName" != "$(systemsetup -getlocalsubnetname | awk '{print $NF}')" ]; then
     scriptLogging "Set computer name to ${computerName}."
     systemsetup -setcomputername "$computerName"
     systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
@@ -98,11 +100,10 @@ fi
 
 scriptLogging "Check if connectability to active directory domain..."
 status=NG
-for s in $( dig _ldap._tcp."$domaintobind" srv +short | awk '{print $NF}' )
-do
-    "$stroke" "$s" 389 389 > /dev/null 2>&1 &
+for s in $(dig _ldap._tcp."$domaintobind" srv +short | awk '{print $NF}'); do
+    "$stroke" "$s" 389 389 >/dev/null 2>&1 &
     sleep 5
-    if ps $! > /dev/null ; then
+    if ps $! >/dev/null; then
         kill -9 $!
         scriptLogging "Timeout: $s TCP/389" 2
     else
@@ -118,31 +119,32 @@ if [ "$status" != OK ]; then
 fi
 
 if [ "$bound" = yes ]; then
-    logmsg="$(  dsconfigad -leave 2>&1 )"
+    logmsg="$(dsconfigad -leave 2>&1)"
     if [ -n "$logmsg" ]; then
         scriptLogging "$logmsg" 2
         exit 1
     fi
 fi
 
-logmsg="$( dsconfigad -add "${domaintobind}" \
-            -username "${ADADMIN}" \
-            -password "${ADADMINPASS}" \
-            -force \
-            -computer "$computerName" 2>&1
-            )"
+logmsg="$(
+    dsconfigad -add "${domaintobind}" \
+        -username "${ADADMIN}" \
+        -password "${ADADMINPASS}" \
+        -force \
+        -computer "$computerName" 2>&1
+)"
 if [ -n "$logmsg" ]; then
     scriptLogging "$logmsg" 2
     exit 1
 fi
 
 dsconfigad -alldomains disable \
-            -localhome enable \
-            -mobile enable \
-            -mobileconfirm disable \
-            -namespace domain \
-            -preferred "${domaintobind}" \
-            -restrictDDNS en99 \
-            -enablesso 2>&1
+    -localhome enable \
+    -mobile enable \
+    -mobileconfirm disable \
+    -namespace domain \
+    -preferred "${domaintobind}" \
+    -restrictDDNS en99 \
+    -enablesso 2>&1
 
 scriptLogging "Done."

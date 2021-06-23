@@ -4,12 +4,12 @@
 
 if [ ! -f "$1" ]; then exit 0; fi
 
-WORKDIR="$( mktemp -d)"
-SCRIPTNAME="$( basename "$1")"
-SERIAL="$( date +%Y%m%d-%H%M%S)"
-DEVELOPERID="$( security find-certificate -a | grep alis | grep ')' | grep "Developer ID Installer" | awk -F= '{print $2}' | tr -d \")"
+WORKDIR="$(mktemp -d)"
+SCRIPTNAME="$(basename "$1")"
+SERIAL="$(date +%Y%m%d-%H%M%S)"
+DEVELOPERID="$(security find-certificate -a | grep alis | grep ')' | grep "Developer ID Installer" | awk -F= '{print $2}' | tr -d \")"
 
-if [ -n "$DEVELOPERID" ]; then ADDSIGN="--sign";  fi
+if [ -n "$DEVELOPERID" ]; then ADDSIGN="--sign"; fi
 mkdir -p "${WORKDIR}/${SCRIPTNAME}/Scripts"
 cp "$1" "${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall"
 chmod 755 "${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall"

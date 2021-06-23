@@ -1,17 +1,20 @@
 #!/bin/bash
 # vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-OS_PRODUCT_NAME="$( /usr/bin/sw_vers -productName)"
-OS_PRODUCT_BUILD="$( /usr/bin/sw_vers -buildVersion)"
-OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}')"
+OS_PRODUCT_NAME="$(/usr/bin/sw_vers -productName)"
+OS_PRODUCT_BUILD="$(/usr/bin/sw_vers -buildVersion)"
+OS_MAJOR_VERSION="$(/usr/bin/sw_vers -productVersion | awk -F. '{print $2}')"
 
 if [ "$OS_MAJOR_VERSION" -gt 6 ]; then
     if [ ! -d /Applications/Server.app ]; then
         RESULT='N/A'
     else
-        BUILD="$( serverinfo --buildversion)"
+        BUILD="$(serverinfo --buildversion)"
         if [ "${BUILD:='N/A'}" != 'N/A' ]; then
-            IsConfigured="$( serverinfo --configured > /dev/null; echo $?)"
+            IsConfigured="$(
+                serverinfo --configured >/dev/null
+                echo $?
+            )"
             if [ "$IsConfigured" -ne 0 ]; then
                 BUILD="$BUILD (not configured as Server)"
             fi
@@ -19,10 +22,10 @@ if [ "$OS_MAJOR_VERSION" -gt 6 ]; then
         RESULT="$BUILD"
     fi
 else
-        if [ "$OS_PRODUCT_NAME" = "Mac OS X Server" ]; then
-            RESULT="$OS_PRODUCT_BUILD"
-        else
-            RESULT='N/A'
-        fi
+    if [ "$OS_PRODUCT_NAME" = "Mac OS X Server" ]; then
+        RESULT="$OS_PRODUCT_BUILD"
+    else
+        RESULT='N/A'
+    fi
 fi
 echo "$RESULT"

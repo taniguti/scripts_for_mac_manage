@@ -12,7 +12,7 @@ fi
 
 mode="$1"
 mobileconfig="$2"
-tmpfile="/tmp/$( uuidgen)"
+tmpfile="/tmp/$(uuidgen)"
 
 if [ ! -f "$mobileconfig" ]; then
     mode=none
@@ -22,20 +22,20 @@ fi
 case "${mode:-none}" in
     add)
         /usr/bin/security find-identity -p codesigning -v | awk -F\" '{print $2}' | awk NF >"$tmpfile"
-        numOfresult="$( wc -l "$tmpfile" | awk '{print $1}')"
+        numOfresult="$(wc -l "$tmpfile" | awk '{print $1}')"
         if [ "$numOfresult" -eq 0 ]; then
             echo "No valid certificate in your keychain."
             rm "$tmpfile"
             exit 1
         elif [ "$numOfresult" -eq 1 ]; then
-            cert="$( cat "$tmpfile")"
+            cert="$(cat "$tmpfile")"
         else
             /bin/echo "Select one you want to use for code sign."
             awk '{print NR") "$0 }' "$tmpfile"
             while true; do
                 /bin/echo -n "[ 1 - $numOfresult ]> "
                 read -r NUM
-                if ((NUM >= 1))   && ((NUM <= numOfresult)); then
+                if ((NUM >= 1)) && ((NUM <= numOfresult)); then
                     cert="$(awk -v R="$NUM" 'NR == R {print $0}' "$tmpfile")"
                     break
                 fi

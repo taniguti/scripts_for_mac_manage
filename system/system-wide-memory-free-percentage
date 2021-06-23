@@ -1,5 +1,5 @@
 #!/bin/bash
 # vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-RESULT="$( memory_pressure | tail -1 | awk '{print $NF}' | tr -d '%' )"
+RESULT="$(memory_pressure | tail -1 | awk '{print $NF}' | tr -d '%')"
 echo "${RESULT:-'N/A'}"

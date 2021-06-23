@@ -1,17 +1,20 @@
 #!/bin/bash
 # vi: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-OS_PRODUCT_NAME="$( /usr/bin/sw_vers -productName )"
-OS_PRODUCT_VERSION="$( /usr/bin/sw_vers -productVersion )"
-OS_MAJOR_VERSION="$( /usr/bin/sw_vers -productVersion | awk -F. '{print $2}' )"
+OS_PRODUCT_NAME="$(/usr/bin/sw_vers -productName)"
+OS_PRODUCT_VERSION="$(/usr/bin/sw_vers -productVersion)"
+OS_MAJOR_VERSION="$(/usr/bin/sw_vers -productVersion | awk -F. '{print $2}')"
 
 if [ "$OS_MAJOR_VERSION" -gt 6 ]; then
     if [ ! -d /Applications/Server.app ]; then
         RESULT='N/A'
     else
-        VERSION="$( serverinfo --shortversion )"
+        VERSION="$(serverinfo --shortversion)"
         if [ "${VERSION:='N/A'}" != 'N/A' ]; then
-            IsConfigured="$( serverinfo --configured > /dev/null; echo $? )"
+            IsConfigured="$(
+                serverinfo --configured >/dev/null
+                echo $?
+            )"
             if [ "$IsConfigured" -ne 0 ]; then
                 VERSION="$VERSION (not configured as Server)"
             fi
@@ -19,10 +22,10 @@ if [ "$OS_MAJOR_VERSION" -gt 6 ]; then
         RESULT="$VERSION"
     fi
 else
-        if [ "$OS_PRODUCT_NAME" = "Mac OS X Server" ]; then
-            RESULT="$OS_PRODUCT_VERSION"
-        else
-            RESULT='N/A'
-        fi
+    if [ "$OS_PRODUCT_NAME" = "Mac OS X Server" ]; then
+        RESULT="$OS_PRODUCT_VERSION"
+    else
+        RESULT='N/A'
+    fi
 fi
 echo "$RESULT"

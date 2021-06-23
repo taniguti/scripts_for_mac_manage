@@ -26,19 +26,19 @@
 #- Remove GarageBand and its Sound Libraries
 #-
 
-if [ "$( /usr/bin/whoami)"  != 'root' ]; then
+if [ "$(/usr/bin/whoami)" != 'root' ]; then
     echo "Use me with sudo."
     exit 1
 fi
 
 for item in "/Applications/GarageBand.app" \
-            "/Library/Application Support/GarageBand" \
-            "/Library/Audio/Apple Loops" \
-            "/Library/Application Support/Logic" \
-            "/Library/Audio/Apple Loops" \
-            "/Library/Audio/Apple Loops Index"; do
+    "/Library/Application Support/GarageBand" \
+    "/Library/Audio/Apple Loops" \
+    "/Library/Application Support/Logic" \
+    "/Library/Audio/Apple Loops" \
+    "/Library/Audio/Apple Loops Index"; do
     if [ -d "$item" ]; then
-        /bin/echo "[REMOVE] $( /usr/bin/du -sh "$item")"
+        /bin/echo "[REMOVE] $(/usr/bin/du -sh "$item")"
         /bin/rm -rf "$item"
     fi
 done

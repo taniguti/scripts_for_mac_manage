@@ -25,7 +25,7 @@ for a in "$@"; do
         continue
     fi
 
-    OWNER=$( /usr/bin/stat -F "$DLAPP" | /usr/bin/awk '{print $3}')
+    OWNER=$(/usr/bin/stat -F "$DLAPP" | /usr/bin/awk '{print $3}')
 
     if [ "$OWNER" = "$(/usr/bin/whoami)" ]; then
         isMyown=yes

@@ -20,8 +20,8 @@ function scriptLogging() {
     # Other than 2 is ignored.
     local logfile scriptname timestamp label mode
     logfile="/tmp/deliver-docker.log"
-    scriptname="$( /usr/bin/basename "$0")"
-    timestamp="$( /bin/date "+%F %T")"
+    scriptname="$(/usr/bin/basename "$0")"
+    timestamp="$(/bin/date "+%F %T")"
     mode="$2"
     case "${mode:-1}" in
         2)
@@ -47,9 +47,9 @@ function sinkDocker() {
     /bin/rm -rf "$dockerapp"
     scriptLogging "Remove Launchd plist file: $plistfile"
     /bin/rm -f "$plistfile"
-    scriptLogging "Remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd")"
-    /bin/rm -f "/Library/PrivilegedHelperTools/$( /usr/bin/basename "$dockervmnetd")"
-    for docker_cmd in $( /usr/bin/stat -l /usr/local/bin/* 2>/dev/null  | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{ print $(NF - 2) }'); do
+    scriptLogging "Remove PrivilegedHelperTools: /Library/PrivilegedHelperTools/$(/usr/bin/basename "$dockervmnetd")"
+    /bin/rm -f "/Library/PrivilegedHelperTools/$(/usr/bin/basename "$dockervmnetd")"
+    for docker_cmd in $(/usr/bin/stat -l /usr/local/bin/* 2>/dev/null | /usr/bin/grep "$dockerapp" | /usr/bin/awk '{ print $(NF - 2) }'); do
         scriptLogging "remove $docker_cmd"
         /bin/rm -f "$docker_cmd"
     done
@@ -67,26 +67,26 @@ function checkapp() {
     DeveloperId="$2"
 
     if [ -x "/usr/local/bin/santactl" ]; then
-        IsSigned="$( /usr/local/bin/santactl fileinfo --key Code-signed "$PathToApp")"
+        IsSigned="$(/usr/local/bin/santactl fileinfo --key Code-signed "$PathToApp")"
         if [ "$IsSigned" != "Yes" ]; then
             scriptLogging "$PathToApp is not code-signed." 2
             return 1
         fi
 
-        DEVID="$( /usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp")"
+        DEVID="$(/usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp")"
         if [ "$DEVID" != "$DeveloperId" ]; then
             scriptLogging "$PathToApp: Developer ID is $DEVID. But it must be $DeveloperId." 2
             return 1
         fi
 
-        ROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$PathToApp")"
-        APPLEROOTCA="$( /usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app)"
+        ROOTCA="$(/usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 "$PathToApp")"
+        APPLEROOTCA="$(/usr/local/bin/santactl fileinfo --cert-index -1 --key SHA-256 /System/Library/CoreServices/Finder.app)"
         if [ "$ROOTCA" != "$APPLEROOTCA" ]; then
             scriptLogging "$PathToApp: ROOT CA of code-signing is not match." 2
             return 1
         fi
     elif [ -x /usr/bin/codesign ]; then
-        TeamIdentifier="$( /usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/awk -F= '$1 == "TeamIdentifier" {print $2}')"
+        TeamIdentifier="$(/usr/bin/codesign --verify --verbose --display "$PathToApp" 2>&1 | /usr/bin/awk -F= '$1 == "TeamIdentifier" {print $2}')"
         if [ "$TeamIdentifier" != "$DeveloperId" ]; then
             scriptLogging "$PathToApp: TeamIdentifier is $TeamIdentifier. But it must be $DeveloperId." 2
             return 1
@@ -111,11 +111,11 @@ function fixUserConfig() {
 
     userDockerGroupConfig="/Users/$username/Library/Group Containers/group.com.docker/settings.json"
     if [ -f "$userDockerGroupConfig" ] \
-                                       && [ "$(/usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' <"$userDockerGroupConfig")" = "$installedver" ]; then
+        && [ "$(/usr/bin/python -c 'import sys,json;data=json.loads(sys.stdin.read());print data["channelID"]' <"$userDockerGroupConfig")" = "$installedver" ]; then
         scriptLogging "$userDockerGroupConfig is ok for $installedver."
     else
-        scriptLogging "Remove $( /usr/bin/dirname "$userDockerGroupConfig") due to version has changed to $installedver."
-        /bin/rm -rf "$( /usr/bin/dirname "$userDockerGroupConfig")"
+        scriptLogging "Remove $(/usr/bin/dirname "$userDockerGroupConfig") due to version has changed to $installedver."
+        /bin/rm -rf "$(/usr/bin/dirname "$userDockerGroupConfig")"
     fi
 }
 
@@ -128,11 +128,11 @@ install_kitematic=no
 # Parm $3
 currentConsoleUser="$3"
 # Parm $4 for kitematic (yes/no)
-if [ "$( echo "$4" | /usr/bin/tr "[:upper:]" "[:lower:]")"  = yes  ]; then install_kitematic=yes;  fi
+if [ "$(echo "$4" | /usr/bin/tr "[:upper:]" "[:lower:]")" = yes ]; then install_kitematic=yes; fi
 # Parm $5 for Edge (stable/edge)
-if [ "$( echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]")"  = edge ]; then release=edge;  fi
+if [ "$(echo "$5" | /usr/bin/tr "[:upper:]" "[:lower:]")" = edge ]; then release=edge; fi
 # Parm $6 for force install/update (yes/no)
-if [ "$( echo "$6" | /usr/bin/tr "[:upper:]" "[:lower:]")"  = yes  ]; then forced=yes;  fi
+if [ "$(echo "$6" | /usr/bin/tr "[:upper:]" "[:lower:]")" = yes ]; then forced=yes; fi
 
 while getopts efhk sw; do
     case $sw in
@@ -154,18 +154,18 @@ done
 
 docker_devid="9BNSXJN65R"
 docker_dlurl="https://download.docker.com/mac/${release}/Docker.dmg"
-docker_dmg="$( /usr/bin/basename "$docker_dlurl")"
+docker_dmg="$(/usr/bin/basename "$docker_dlurl")"
 dockerapp=/Applications/Docker.app
 dockervmnetd="${dockerapp}/Contents/Library/LaunchServices/com.docker.vmnetd"
 dockerplist="${dockerapp}/Contents/Resources/com.docker.vmnetd.plist"
-plistfile="/Library/LaunchDaemons/$( /usr/bin/basename "$dockerplist")"
+plistfile="/Library/LaunchDaemons/$(/usr/bin/basename "$dockerplist")"
 
 kitematic_dlurl="https://download.docker.com/kitematic/Kitematic-Mac.zip"
-kitematic_zip="$( /usr/bin/basename "$kitematic_dlurl")"
+kitematic_zip="$(/usr/bin/basename "$kitematic_dlurl")"
 kitematicapp=/Applications/Kitematic.app
 
 if [ -z "$currentConsoleUser" ]; then
-    currentConsoleUser="$( /usr/bin/stat -l /dev/console | /usr/bin/awk '{print $3}')"
+    currentConsoleUser="$(/usr/bin/stat -l /dev/console | /usr/bin/awk '{print $3}')"
 fi
 if [ "$currentConsoleUser" = root ] || [ -z "$currentConsoleUser" ]; then
     currentConsoleUser=none
@@ -180,14 +180,14 @@ scriptLogging "Current console user: $currentConsoleUser"
 
 if [ "$forced" = yes ]; then sinkDocker; fi
 if [ -d "$dockerapp" ]; then
-    current_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist")"
+    current_dockerver="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${dockerapp}/Contents/Info.plist")"
     scriptLogging "Current docker version: $current_dockerver"
 else
     current_dockerver="X"
     scriptLogging "Install fresh Docker"
 fi
 
-workdir="$( /usr/bin/mktemp -d)"
+workdir="$(/usr/bin/mktemp -d)"
 /usr/bin/curl --silent -o "${workdir}/$docker_dmg" "$docker_dlurl"
 if [ ! -f "${workdir}/$docker_dmg" ]; then
     scriptLogging "Failed to download $docker_dmg" 2
@@ -195,8 +195,8 @@ if [ ! -f "${workdir}/$docker_dmg" ]; then
     exit 1
 fi
 
-devfile="$( /usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}')"
-dmg_dockerver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist 2>/dev/null)"
+devfile="$(/usr/bin/hdiutil attach -nobrowse "${workdir}/$docker_dmg" | /usr/bin/grep Docker | /usr/bin/awk '{print $1}')"
+dmg_dockerver="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" /Volumes/Docker/Docker.app/Contents/Info.plist 2>/dev/null)"
 if [ -z "$dmg_dockerver" ]; then
     scriptLogging "Unknown Type of Docker! Failed to get docker version." 2
     scriptLogging "Abort!" 2
@@ -209,7 +209,7 @@ if [ "$dmg_dockerver" = "$current_dockerver" ]; then
     scriptLogging "Nothing to do for $dockerapp."
     /usr/bin/hdiutil detach -quiet "$devfile"
 else
-    result="$( checkapp "/Volumes/Docker/Docker.app" "$docker_devid")"
+    result="$(checkapp "/Volumes/Docker/Docker.app" "$docker_devid")"
     if [ "$result" = ok ]; then
         scriptLogging "Docker.app: check passed."
     else
@@ -236,8 +236,8 @@ else
         /bin/cp -af "$dockerplist" "$plistfile"
 
         scriptLogging "Check if there is vmnetd version in plist. This is very important."
-        plist_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print Version" "$plistfile" 2>/dev/null)"
-        info_dockervmnetd_ver="$( /usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2>/dev/null)"
+        plist_dockervmnetd_ver="$(/usr/libexec/PlistBuddy -c "print Version" "$plistfile" 2>/dev/null)"
+        info_dockervmnetd_ver="$(/usr/libexec/PlistBuddy -c "print VmnetdVersion" "${dockerapp}/Contents/Info.plist" 2>/dev/null)"
         scriptLogging "plist_dockervmnetd_ver: $plist_dockervmnetd_ver"
         scriptLogging "info_dockervmnetd_ver: $info_dockervmnetd_ver"
         if [ -z "$plist_dockervmnetd_ver" ]; then
@@ -280,7 +280,7 @@ else
     fixUserConfig "$release" "$currentConsoleUser"
 
     /bin/launchctl load -w "$plistfile"
-    vmnetd_status="$( /bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()')"
+    vmnetd_status="$(/bin/launchctl print system/com.docker.vmnetd | /usr/bin/grep state | /usr/bin/tr -d '()')"
     scriptLogging "com.docker.vmnetd $vmnetd_status"
 fi
 
@@ -297,7 +297,7 @@ if [ "$install_kitematic" = yes ]; then
     fi
 
     scriptLogging "Check version of kitematic"
-    new_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist")"
+    new_kitematic_ver="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${workdir}/Kitematic.app/Contents/Info.plist")"
     if [ -z "$new_kitematic_ver" ]; then
         scriptLogging "Unknown Type of Kitematic!" 2
         scriptLogging "Abort!" 2
@@ -308,7 +308,7 @@ if [ "$install_kitematic" = yes ]; then
     if [ "$forced" = yes ]; then killKitematic; fi
 
     if [ -d "$kitematicapp" ]; then
-        current_kitematic_ver="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist")"
+        current_kitematic_ver="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${kitematicapp}/Contents/Info.plist")"
         if [ "$current_kitematic_ver" = "$new_kitematic_ver" ]; then
             do_install=no
             scriptLogging "Already same version installed: $current_kitematic_ver"
@@ -318,11 +318,11 @@ if [ "$install_kitematic" = yes ]; then
             killKitematic
         fi
     else
-         do_install=yes
+        do_install=yes
     fi
 
     if [ "$do_install" = yes ]; then
-        result="$( checkapp "${workdir}/Kitematic.app" "$docker_devid")"
+        result="$(checkapp "${workdir}/Kitematic.app" "$docker_devid")"
         if [ "$result" = ok ]; then
             scriptLogging "Kitematic.app: check passed."
         else

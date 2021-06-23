@@ -26,7 +26,7 @@ if [ ! -e "$target" ]; then
     exit 1
 fi
 
-ext="$( echo "${target##*.}" | /usr/bin/tr "[:upper:]" "[:lower:]")"
+ext="$(echo "${target##*.}" | /usr/bin/tr "[:upper:]" "[:lower:]")"
 case "${ext%/}" in
     app | kext)
         if [ "${ext%/}" = kext ]; then
@@ -34,8 +34,8 @@ case "${ext%/}" in
         else
             ctype="execute"
         fi
-        result="$( /usr/sbin/spctl --assess --verbose --type "$ctype" "$target" 2>&1 | /usr/bin/grep "$target")"
-        target_version="$( /usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2>/dev/null)"
+        result="$(/usr/sbin/spctl --assess --verbose --type "$ctype" "$target" 2>&1 | /usr/bin/grep "$target")"
+        target_version="$(/usr/libexec/PlistBuddy -c "print CFBundleShortVersionString" "${target}/Contents/Info.plist" 2>/dev/null)"
         echo "$result: (version ${target_version:-N/A})"
         ;;
     pkg)
