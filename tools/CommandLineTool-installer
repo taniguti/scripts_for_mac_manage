@@ -21,15 +21,15 @@ Shlogger() {
 }
 
 InstallCommandLineTools() {
-    local flag items cltinstall osVersion workfile
+    local flag items cltinstall kernelMajorVer workfile
 
     Shlogger "Prepare getting command line tools..."
     flag="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
     /usr/bin/touch "$flag"
 
     Shlogger "Check command line tools list"
-    osVersion="$(/usr/bin/sw_vers -productVersion | /usr/bin/awk -F. '{print $2}')"
-    # macOS 10.15 or later
+    kernelMajorVer="$(/usr/bin/uname -r | /usr/bin/awk -F. '{print $1}')"
+    # macOS 10.15 or later (Kernel Major version 19 or bigger)
     #Software Update Tool
     #
     #Finding available software
@@ -39,7 +39,7 @@ InstallCommandLineTools() {
     #* Label: Command Line Tools for Xcode-11.0
     #	Title: Command Line Tools for Xcode, Version: 11.0, Size: 224978K, Recommended: YES,
 
-    # macOS 10.14 or earlier
+    # macOS 10.14 or earlier (Kernel Major version 18 or smaller)
     #Software Update Tool
     #
     #Finding available software
@@ -49,7 +49,7 @@ InstallCommandLineTools() {
 
     items="$(/usr/bin/mktemp)"
 
-    if [ "$osVersion" -ge 15 ]; then
+    if [ "$kernelMajorVer" -ge 19 ]; then
         /usr/sbin/softwareupdate --list --recommended \
             | /usr/bin/grep "\* Label: Command Line Tools" \
             | /usr/bin/cut -c 10- >"$items"
