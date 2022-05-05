@@ -55,7 +55,7 @@ function checkApp() {
             return 1
         fi
 
-        DEVID="$(/usr/local/bin/santactl fileinfo --cert-index 1 --key "Organizational Unit" "$PathToApp")"
+        DEVID="$(/usr/local/bin/santactl fileinfo --cert-index 0 --key "Organizational Unit" "$PathToApp")"
         if [ "$DEVID" != "$DeveloperId" ]; then
             echo "$PathToApp: Developer ID is $DEVID. But it must be $DeveloperId."
             return 1
