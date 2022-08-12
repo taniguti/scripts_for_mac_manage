@@ -2,7 +2,7 @@
 # vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 # https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 
-Shlogger() {
+shlogger() {
     local logfile scriptname timestamp label mode
     scriptname="$(/usr/bin/basename "$0")"
     logfile="/tmp/${scriptname}.log"
@@ -23,11 +23,11 @@ Shlogger() {
 InstallCommandLineTools() {
     local flag items cltinstall kernelMajorVer workfile
 
-    Shlogger "Prepare getting command line tools..."
+    shlogger "Prepare getting command line tools..."
     flag="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
     /usr/bin/touch "$flag"
 
-    Shlogger "Check command line tools list"
+    shlogger "Check command line tools list"
     kernelMajorVer="$(/usr/bin/uname -r | /usr/bin/awk -F. '{print $1}')"
     # macOS 10.15 or later (Kernel Major version 19 or bigger)
     #Software Update Tool
@@ -60,27 +60,27 @@ InstallCommandLineTools() {
     fi
 
     if [ ! -s "$items" ]; then
-        Shlogger "Not found Command line tools." 2
+        shlogger "Not found Command line tools." 2
         /bin/rm -f "$items" "$flag"
         exit 1
     fi
 
     workfile="$(/usr/bin/mktemp)"
     cltinstall="$(/usr/bin/mktemp)"
-    Shlogger "Create installer script: $cltinstall"
+    shlogger "Create installer script: $cltinstall"
     echo "/usr/sbin/softwareupdate --verbose --install" >"$workfile"
     /usr/bin/awk '{print "\""$0"\""}' "$items" >>"$workfile"
     /usr/bin/paste -s "$workfile" >"$cltinstall"
 
-    Shlogger "Execute installer script: $cltinstall"
+    shlogger "Execute installer script: $cltinstall"
     /bin/bash "$cltinstall"
 
     /bin/rm -f "$flag" "$cltinstall" "$items" "$workfile"
 
-    Shlogger "Done."
+    shlogger "Done."
 }
 
-xcodeCommandLineToolsPath="$(xcode-select -p)"
+xcodeCommandLineToolsPath="$(/usr/bin/xcode-select -p)"
 if [ -z "$xcodeCommandLineToolsPath" ] \
     || [ ! -d "$xcodeCommandLineToolsPath" ] \
     || [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
@@ -88,5 +88,5 @@ if [ -z "$xcodeCommandLineToolsPath" ] \
     exit 0
 fi
 
-Shlogger "No need install command line tool."
+shlogger "No need install command line tool."
 exit 0
