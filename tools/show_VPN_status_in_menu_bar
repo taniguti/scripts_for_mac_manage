@@ -1,0 +1,22 @@
+#!/bin/bash
+# vim: set ts=2 sw=2 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+domain=com.apple.systemuiserver
+menubarItem="/System/Library/CoreServices/Menu Extras/vpn.menu"
+console_user="$3"
+if [ -z "$console_user" ]; then
+  console_user="$(stat -f %Su /dev/console)"
+fi
+
+menubarShown="$(/usr/libexec/PlistBuddy -c print \
+  "/Users/${console_user}/Library/Preferences/${domain}.plist" \
+  | /usr/bin/grep -c "$menubarItem")"
+
+if [ "${menubarShown:-0}" -eq 0 ]; then
+  if [ "$(whoami)" = "$console_user" ]; then
+    defaults write $domain menuExtras -array-add "$menubarItem"
+  else
+    sudo -u "$console_user" defaults write "$domain" menuExtras -array-add "$menubarItem"
+  fi
+  killall SystemUIServer -HUP
+fi

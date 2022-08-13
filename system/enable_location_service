@@ -1,0 +1,18 @@
+#!/bin/bash
+# vi: set ts=2 sw=2 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+current_state="$(
+  sudo -u "_locationd" defaults -currentHost read \
+    "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" \
+    LocationServicesEnabled
+)"
+
+if [ "$current_state" -eq 1 ]; then
+  echo "location service already enabled."
+else
+  echo "location service make enabled."
+  sudo -u "_locationd" defaults -currentHost write \
+    "/var/db/locationd/Library/Preferences/ByHost/com.apple.locationd" \
+    LocationServicesEnabled -int 1
+  kill -HUP "$(pgrep locationd)"
+fi
