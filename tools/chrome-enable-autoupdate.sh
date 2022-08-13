@@ -13,12 +13,6 @@ if [ ! -x "$install_script" ]; then
 fi
 
 function shlogger() {
-    #
-    # Import form script-modules/bash_function_shlogger
-    #
-    # `shlogger "your message"` then logging file and put it std-out.
-    # `shlogger "your message" 2` then logging file and put it std-err.
-    # Other than 2 is ignored.
     local logfile scriptname timestamp label mode
     logfile="/tmp/jamf-script.log"
     scriptname="$(/usr/bin/basename "$0")"

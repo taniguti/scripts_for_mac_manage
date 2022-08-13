@@ -9,9 +9,6 @@ CHROME="/Applications/Google Chrome.app"
 notification=no
 
 function checkapp() {
-    #
-    # Import form script-modules/bash_function_checkapp
-    #
     local PathToApp DeveloperId IsSigned DEVID ROOTCA APPLEROOTCA TeamIdentifier
     PathToApp="$1"
     DeveloperId="$2"
