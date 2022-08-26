@@ -5,7 +5,7 @@
 shlogger() {
     local logfile scriptname timestamp label mode
     scriptname="$(/usr/bin/basename "$0")"
-    logfile="/tmp/${scriptname}.log"
+    logfile="/var/tmp/${scriptname}.log"
     timestamp="$(/bin/date "+%F %T")"
     mode="$2"
     case "${mode:-1}" in
@@ -80,7 +80,7 @@ InstallCommandLineTools() {
     shlogger "Done."
 }
 
-xcodeCommandLineToolsPath="$(/usr/bin/xcode-select -p)"
+xcodeCommandLineToolsPath="$(/usr/bin/xcode-select -p 2>/dev/null)"
 if [ -z "$xcodeCommandLineToolsPath" ] \
     || [ ! -d "$xcodeCommandLineToolsPath" ] \
     || [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
