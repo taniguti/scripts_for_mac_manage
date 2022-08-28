@@ -85,8 +85,8 @@ if [ -z "$xcodeCommandLineToolsPath" ] \
     || [ ! -d "$xcodeCommandLineToolsPath" ] \
     || [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
     InstallCommandLineTools
-    exit 0
+else
+    shlogger "No need install command line tool."
 fi
 
-shlogger "No need install command line tool."
 exit 0
