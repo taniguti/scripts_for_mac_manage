@@ -143,6 +143,74 @@ function vercomp() {
   done
 }
 
+function install_launchd_plist() {
+  local label plist_file temp_file
+  label="$1"
+  plist_file="/Library/LaunchDaemons/${label}.plist"
+  temp_file="$(/usr/bin/mktemp)"
+
+  cat <<_PLIST >"$temp_file"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fabriceleyne.powermetrics</string>
+  <key>LowPriorityIO</key>
+  <false/>
+  <key>MachServices</key>
+  <dict>
+    <key>com.fabriceleyne.powermetrics</key>
+    <true/>
+  </dict>
+  <key>Nice</key>
+  <integer>-10</integer>
+  <key>ProcessType</key>
+  <string>Interactive</string>
+  <key>Program</key>
+  <string>/Library/PrivilegedHelperTools/com.fabriceleyne.powermetrics</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Library/PrivilegedHelperTools/com.fabriceleyne.powermetrics</string>
+  </array>
+</dict>
+</plist>
+_PLIST
+
+  if /usr/bin/plutil -lint "$temp_file" >/dev/null 2>&1; then
+    shlogger "Syntax OK"
+    /usr/bin/plutil -convert xml1 "$temp_file" >"$plist_file"
+    /bin/chmod 644 "$plist_file"
+    /usr/sbin/chown "$plist_file"
+    /bin/launchctl load -w "$plist_file"
+  else
+    shlogger "Syntax NG. Not install: $plist_file"
+    rm -rf "$temp_file"
+  fi
+}
+
+function install_helper_tool() {
+  local path_to_app privileged_helper_tool privileged_helper_tool_label
+
+  path_to_app="$1"
+  privileged_helper_tool="${path_to_app}/Contents/Library/LaunchServices/com.fabriceleyne.powermetrics"
+  privileged_helper_tool_label="$(/usr/bin/basename "$privileged_helper_tool")"
+
+  if [ -x "/Library/PrivilegedHelperTools/${privileged_helper_tool_label}" ]; then
+    installed_pht_md5="$(/sbin/md5 -q "/Library/PrivilegedHelperTools/${privileged_helper_tool_label}")"
+  fi
+  if [ -f "$privileged_helper_tool" ]; then
+    current_pht_md5="$(/sbin/md5 -q "$privileged_helper_tool")"
+    if [ "$current_pht_md5" != "${installed_pht_md5:-0}" ]; then
+      /usr/bin/install -m 755 "$privileged_helper_tool" /Library/PrivilegedHelperTools
+      shlogger "install $privileged_helper_tool into /Library/PrivilegedHelperTools"
+      if [ ! -f "/Library/LaunchDaemons/${privileged_helper_tool_label}.plist" ]; then
+        install_launchd_plist "$privileged_helper_tool_label"
+      fi
+    fi
+  fi
+}
+
 if [ "$(/usr/bin/arch)" != "arm64" ]; then
   shlogger "For Macs with Apple Silicon Only!" 2
   exit 1
@@ -164,10 +232,20 @@ fi
 
 if [ "$(vercomp "${installed_version:-0}" "$app_latest_version")" -eq 2 ]; then
   if update_app "/Applications/${app_name}.app" "$developerid" "${app_installed:-no}"; then
+    if [ "$app_installed" = yes ]; then
+      shlogger "${app_name}.app is now updated."
+    else
+      shlogger "${app_name}.app is installed successful."
+    fi
     rc=0
-    shlogger "${app_name}.app is now updated."
+    # update_helper_tool
+    install_helper_tool "/Applications/${app_name}.app"
   else
-    shlogger "Failed to update of ${app_name}.app."
+    if [ "$app_installed" = yes ]; then
+      shlogger "Failed to update of ${app_name}.app."
+    else
+      shlogger "Failed to install ${app_name}.app."
+    fi
     rc=1
   fi
 else
