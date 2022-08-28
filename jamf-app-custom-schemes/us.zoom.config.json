@@ -1,0 +1,231 @@
+{
+  "title": "us.zoom preferences",
+  "description": "zoom.us preferences",
+  "__preferencedomain": "us.zoom.config",
+  "properties": {
+    "zAutoUpdate": {
+      "title": "Auto Update",
+      "description": "Enable updates through the client by users. When disabled, the Check for Updates button is also hidden. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableSilentAutoUpdate": {
+      "title": "Enable Silent Auto Update",
+      "description": "Allow the desktop client to silently check for updates and, if user’s version is lower than the stable version set by Zoom, install upon launching the client. This option requires the AutoUpdate option to be enabled(true). Default: true",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "AlwaysCheckLatestVersion": {
+      "title": "Always Check Latest Version",
+      "description": "Allow the desktop client to check for updates and, if user’s version is lower than the latest version released by Zoom, prompt the user to install the update. This option requires the AutoUpdate option to be enabled(true). Default: true",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "SetUpdatingChannel": {
+      "title": "Set Updating Channel",
+      "description": "Control the cadence of updates applied to the desktop client (version 5.6.8 or higher): Slow (false): fewer updates and better stability.  Fast (true): newest features and updates. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "DisableDaemonInstall": {
+      "title": "Disable Daemon Install",
+      "description": "Controls the use of the daemon helper to install updates, which bypasses the need to enter admin credentials when upgrading. This option requires AutoUpdate option to be enabled, and will fail if not enabled(true). Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "NoFacebook": {
+      "title": "No Facebook",
+      "description": "Remove Facebook login option. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "NoGoogle": {
+      "title": "No Google",
+      "description": "Remove Google login option. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableAppleLogin": {
+      "title": "Enable Apple Login",
+      "description": "Allow access to Apple login option. Default: true",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "NoSSO": {
+      "title": "Remove SSO Loginn",
+      "description": "Remove SSO login option. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "DisableLoginWithEmail": {
+      "title": "Disable Login With Email",
+      "description": "Remove Email login option. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "zAutoSSOLogin": {
+      "title": "Auto SSO login",
+      "description": "Defaults login to SSO. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "zSSOHost": {
+      "title": "SSO Host",
+      "description": "Set the default SSO URL for SSO login. For example, hooli.zoom.us would be set as \"zSSOHost=hooli\"",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "string"
+        }
+      ]
+    },
+    "ForceSSOURL": {
+      "title": "Force SSO URL",
+      "description": "Set and lock the default SSO URL for SSO login. For example, hooli.zoom.us would be set as \"ForceSSOUrl=hooli\"",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "string"
+        }
+      ]
+    },
+    "EnableEmbedBrowserForSSO": {
+      "title": "Enable Embed Browser For SSO",
+      "description": "Use embedded browser in the client for SSO. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    },
+    "SetWebDomain": {
+      "title": "Set Web Domain",
+      "description": "Sets the web domain for logging in or joining a meeting. By default, the value is https://zoom.us or https://zoom.com.",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "string"
+        }
+      ]
+    },
+    "DisableAutoLaunchSSO": {
+      "title": "Disable Auto Launch SSO",
+      "description": "Prevent Zoom from automatically launching the previously used SSO URL. This is useful for users with multiple accounts, each having their own SSO URL. Default: false",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    }
+  }
+}
