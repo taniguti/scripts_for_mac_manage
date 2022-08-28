@@ -1,0 +1,115 @@
+#!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+tag_name=""
+browser_download_url=""
+# Google Team ID
+team_id="EQHXZ8M8AV"
+
+function shlogger() {
+    #
+    # Import form script-modules/bash_function_shlogger
+    #
+    # `shlogger "your message"` then logging file and put it std-out.
+    # `shlogger "your message" 2` then logging file and put it std-err.
+    # Other than 2 is ignored.
+    local logfile scriptname timestamp label mode
+    scriptname="$(/usr/bin/basename "$0")"
+    timestamp="$(/bin/date "+%F %T")"
+    logfile="/var/tmp/${scriptname}.log"
+    mode="$2"
+    case "${mode:-1}" in
+        2)
+            label="[error]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile" >&2
+            ;;
+        *)
+            label="[info]"
+            echo "$timestamp $scriptname $label $1" | /usr/bin/tee -a "$logfile"
+            ;;
+    esac
+}
+
+if [ "$(/usr/bin/uname -r | /usr/bin/awk -F. '{print $1}')" -gt 18 ]; then
+    # macOS 10.15 or later
+    eval "$(/usr/bin/curl --location --silent --fail \
+        "https://api.github.com/repos/google/santa/releases/latest" \
+        | /usr/bin/grep -w -e 'tag_name' -e 'browser_download_url' \
+        | /usr/bin/grep -v .tar.gz | /usr/bin/sed s/,$// \
+        | /usr/bin/awk -F\" '{print $2"="$4}')"
+    latest_version="$tag_name"
+else
+    latest_version="2022.2"
+    browser_download_url="https://github.com/google/santa/releases/download/2022.2/santa-2022.2.dmg"
+    shlogger "This mac is $(/usr/bin/sw_vers | /usr/bin/awk -F: '{print $NF}' | paste - - - | xargs)"
+    shlogger "Final version for macOS 10.14 or earlier is version $latest_version of google santa."
+fi
+
+if [ -z "$latest_version" ]; then
+    shlogger "failed to get the latest version number of google-sanata" 2
+    exit 1
+fi
+if [ -z "$browser_download_url" ]; then
+    shlogger "failed to get download url of google-sanata" 2
+    exit 1
+fi
+
+if [ -x /usr/local/bin/santactl ]; then
+    installed_santad_info="$(/usr/local/bin/santactl version | /usr/bin/awk '$1 == "santad"')"
+    installedVersion="$(echo "$installed_santad_info" | awk -F\| '{print $NF}')"
+    if [ "$(echo "$installed_santad_info" | /usr/bin/grep -c -w "$latest_version")" -eq 1 ]; then
+        shlogger "Installed Google Santa version is uptodate. The version is ${latest_version}."
+        shlogger "Nothing to do."
+        exit 0
+    else
+        shlogger "Installed Google Santa version is out of date. The version is ${installedVersion}."
+    fi
+else
+    shlogger "Google Santa version is not installed"
+fi
+
+workdir="$(/usr/bin/mktemp -d)"
+dmgfile="$(/usr/bin/basename "$browser_download_url")"
+/usr/bin/curl --location --disable --silent --output "${workdir}/${dmgfile}" "$browser_download_url"
+if [ ! -f "${workdir}/${dmgfile}" ]; then
+    shlogger "Failed to download $dmgfile from $browser_download_url" 2
+    shlogger "Abort" 2
+    rm -rf "$workdir"
+    exit 1
+fi
+
+shlogger "Mount dmg file: $dmgfile"
+devfile="$(/usr/bin/hdiutil attach -nobrowse "${workdir}/${dmgfile}" \
+    | /usr/bin/grep santa \
+    | /usr/bin/awk '{print $1}')"
+
+santa_pkg="/Volumes/santa-${latest_version}/santa-${latest_version}.pkg"
+if [ -f "$santa_pkg" ]; then
+    if [ "$(/usr/sbin/spctl --type install --verbose --verbose --assess "$santa_pkg" 2>&1 \
+        | /usr/bin/grep "Developer ID Installer:" \
+        | /usr/bin/awk '{print $NF}' \
+        | /usr/bin/tr -d '()')" = "$team_id" ]; then
+        shlogger "Developer ID is match."
+
+        if /usr/sbin/installer -target / -pkg "$santa_pkg" >/dev/null 2>&1; then
+            shlogger "Installed pkg file: $(/usr/bin/basename "$santa_pkg")"
+            result=0
+        else
+            shlogger "Failed to install pkg file: $(/usr/bin/basename "$santa_pkg")" 2
+            result=1
+        fi
+    else
+        shlogger "Developer ID is not match." 2
+        shlogger "Abort to install google-sanata." 2
+        result=1
+    fi
+else
+    shlogger "/Volumes/santa-${latest_version}/santa-${latest_version}.pkg not found." 2
+    result=1
+fi
+
+/usr/bin/hdiutil detach -quiet "$devfile"
+shlogger "Unmount dmg file: $dmgfile ($devfile)"
+/bin/rm -rf "$workdir"
+shlogger "Done."
+exit $result
