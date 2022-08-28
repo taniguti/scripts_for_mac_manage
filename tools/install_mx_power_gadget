@@ -179,9 +179,10 @@ _PLIST
 
   if /usr/bin/plutil -lint "$temp_file" >/dev/null 2>&1; then
     shlogger "Syntax OK"
-    /usr/bin/plutil -convert xml1 "$temp_file" >"$plist_file"
+    /usr/bin/plutil -convert xml1 "$temp_file"
+    /bin/cp "$temp_file" "$plist_file"
     /bin/chmod 644 "$plist_file"
-    /usr/sbin/chown "$plist_file"
+    /usr/sbin/chown 0:0 "$plist_file"
     /bin/launchctl load -w "$plist_file"
   else
     shlogger "Syntax NG. Not install: $plist_file"
