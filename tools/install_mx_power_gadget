@@ -143,9 +143,9 @@ function vercomp() {
   done
 }
 
-if [ "$(/usr/bin/arch)" != "arm" ]; then
+if [ "$(/usr/bin/arch)" != "arm64" ]; then
   shlogger "For Macs with Apple Silicon Only!" 2
-  exit 0
+  exit 1
 fi
 
 if [ "$(/usr/bin/whoami)" != root ]; then
