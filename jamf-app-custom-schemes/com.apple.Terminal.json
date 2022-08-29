@@ -1,0 +1,21 @@
+{
+  "title": "com.apple.Terminal preferences",
+  "description": "Terminal.app preferences",
+  "__preferencedomain": "com.apple.Terminal",
+  "properties": {
+    "SecureKeyboardEntry": {
+      "title": "Secure Keyboard Entry",
+      "description": "Secure Keyboad Entry controll",
+      "anyOf": [
+        {
+          "title": "Not Configured",
+          "type": "null"
+        },
+        {
+          "title": "Configured",
+          "type": "boolean"
+        }
+      ]
+    }
+  }
+}
