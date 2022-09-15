@@ -1,7 +1,9 @@
 #!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 #-
-#- usage by cli,
-#- sudo ./unbind_AD_then_bind_AD_again 1 $( hostname -s ) 3 ActiveDirectory_bind_credential Salt_for_ActiveDirectory_bind_credential ActiveDirectory_domain_name
+#- Usage
+#- -----
+#- sudo ./unbind_AD_then_bind_AD_again ActiveDirectory_bind_credential Salt_for_ActiveDirectory_bind_credential ActiveDirectory_domain_name
 #-
 #- ActiveDirectory_bind_credential must be encrypted.
 #-
@@ -24,10 +26,9 @@
 ## The 'U2FsdGVkX19UQelDQCb/1iVrsblTiCdzO9JK5eRXCcJpWGJPMC4DbH/trZGcCaHU' is ActiveDirectory_bind_credential.
 ##
 
-IAM="$(whoami)"
-stroke="/System/Library/CoreServices/Applications/Network Utility.app/Contents/Resources/stroke"
+iam="$(whoami)"
 
-function scriptLogging() {
+function scriptlogger() {
     local logfile scriptname timestamp label mode
     logfile="/tmp/unbind_AD_then_bind_AD.log"
     scriptname="$(/usr/bin/basename "$0")"
@@ -49,33 +50,32 @@ function usage() {
     grep "^#-" "$0" | cut -c 4-
 }
 
-if [ "$IAM" != root ]; then
+if [ "$iam" != root ]; then
     usage
     exit 1
 fi
 
-credentialstring="$4"
-salt="$5"
-domaintobind="$6"
-
-if [ ! -x "$stroke" ]; then
-    scriptLogging "Not found: $stroke" 2
-    scriptLogging "Abort." 2
-    exit 1
+# Jamf support
+if [ "$1" = '/' ]; then
+    shift 3
 fi
+
+credentialstring="$1"
+salt="$2"
+domaintobind="$3"
 
 if [ -z "$credentialstring" ] || [ -z "$salt" ] || [ -z "$domaintobind" ]; then
     usage
     exit 1
 else
-    scriptLogging "credentialstring: $credentialstring"
-    scriptLogging "salt: (I got it.)"
-    scriptLogging "Domain to bind: $domaintobind"
+    scriptlogger "credentialstring: $credentialstring"
+    scriptlogger "salt: (I got it.)"
+    scriptlogger "Domain to bind: $domaintobind"
 fi
 
 string="$(echo "$credentialstring" | /usr/bin/openssl enc -aes256 -d -a -A -S "$salt" -k "$domaintobind")"
 if [ -z "$string" ]; then
-    scriptLogging "Could not decrypt $credentialstring" 2
+    scriptlogger "Could not decrypt $credentialstring" 2
     exit 1
 fi
 
@@ -91,37 +91,35 @@ else
     bound=yes
 fi
 
-scriptLogging "ComputerID: $computerName"
+scriptlogger "ComputerID: $computerName"
 if [ "$computerName" != "$(systemsetup -getlocalsubnetname | awk '{print $NF}')" ]; then
-    scriptLogging "Set computer name to ${computerName}."
+    scriptlogger "Set computer name to ${computerName}."
     systemsetup -setcomputername "$computerName"
     systemsetup -setlocalsubnetname "$(echo "$computerName" | tr "[:upper:]" "[:lower:]")"
 fi
 
-scriptLogging "Check if connectability to active directory domain..."
+scriptlogger "Check if connectability to active directory domain..."
 status=NG
 for s in $(dig _ldap._tcp."$domaintobind" srv +short | awk '{print $NF}'); do
-    "$stroke" "$s" 389 389 >/dev/null 2>&1 &
-    sleep 5
-    if ps $! >/dev/null; then
-        kill -9 $!
-        scriptLogging "Timeout: $s TCP/389" 2
-    else
-        scriptLogging "Access check passed: $s TCP/389"
+    if nc -w 1 "$s" 389; then
+        scriptlogger "Access check passed: $s TCP/389"
         status=OK
         break
+    else
+        scriptlogger "Timeout: $s TCP/389" 2
+        status=NG
     fi
 done
 
 if [ "$status" != OK ]; then
-    scriptLogging "Abort due to failed to talk with Active Directory domain server." 2
+    scriptlogger "Abort due to failed to talk with Active Directory domain server." 2
     exit 1
 fi
 
 if [ "$bound" = yes ]; then
     logmsg="$(dsconfigad -leave 2>&1)"
     if [ -n "$logmsg" ]; then
-        scriptLogging "$logmsg" 2
+        scriptlogger "$logmsg" 2
         exit 1
     fi
 fi
@@ -134,7 +132,7 @@ logmsg="$(
         -computer "$computerName" 2>&1
 )"
 if [ -n "$logmsg" ]; then
-    scriptLogging "$logmsg" 2
+    scriptlogger "$logmsg" 2
     exit 1
 fi
 
@@ -148,5 +146,5 @@ dsconfigad -alldomains disable \
     -enablesso 2>&1
 
 odutil reset cache
-scriptLogging "Executed 'odutil reset cache'."
-scriptLogging "Done."
+scriptlogger "Executed 'odutil reset cache'."
+scriptlogger "Done."
