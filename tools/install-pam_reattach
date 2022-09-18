@@ -1,0 +1,60 @@
+#!/bin/bash
+# vim: set ts=2 sw=2 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+function install_cmake() {
+  local dl_url dmgfile workdir devfile cmake_dir dmg_dir_name cmake_file
+
+  cmake_dir="$1"
+  dl_url="https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-macos-universal.dmg"
+  dmgfile="$(basename "$dl_url")"
+  workdir="$(mktemp -d)"
+
+  curl --location --disable --silent --output "${workdir}/${dmgfile}" "$dl_url"
+
+  if [ ! -f "${workdir}/${dmgfile}" ]; then
+    echo "Failed to download $dmgfile from $dl_url" >&2
+    rm -rf "$workdir"
+  else
+
+    devfile="$(hdiutil attach -nobrowse "${workdir}/${dmgfile}" \
+      | grep cmake \
+      | awk '{print $1}')"
+
+    dmg_dir_name="$(df | grep cmake | awk '{print $NF}')"
+
+    mkdir -p "$cmake_dir"
+
+    cp -a "${dmg_dir_name}/CMake.app" "$cmake_dir"
+
+    hdiutil detach -quiet "$devfile"
+    cmake_file="${cmake_dir}/CMake.app/Contents/bin/cmake"
+  fi
+
+  echo "$cmake_file"
+}
+
+if [ -x /opt/homebrew/bin/cmake ]; then
+  CMAKE=/opt/homebrew/bin/cmake
+else
+  CMAKE="$(install_cmake /tmp/$$)"
+  PATH=$(dirname "$CMAKE"):$PATH
+fi
+
+repo_dir="/tmp/$$/pam_reattach"
+git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
+cd "$repo_dir" || exit 1
+
+"$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+make
+
+if [ -f pam_reattach.so ]; then
+  if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+    if [ "$(md5 -q pam_reattach.so)" != "$(md5 -q /usr/local/lib/pam/pam_reattach.so)" ]; then
+      make install
+    fi
+  else
+    make install
+  fi
+fi
+
+rm -rf "/tmp/$$"
