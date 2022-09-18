@@ -21,7 +21,7 @@ shlogger() {
 }
 
 InstallCommandLineTools() {
-    local flag items cltinstall kernelMajorVer workfile
+    local flag items cltinstall kernelMajorVer
 
     shlogger "Prepare getting command line tools..."
     flag="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
@@ -65,17 +65,39 @@ InstallCommandLineTools() {
         exit 1
     fi
 
-    workfile="$(/usr/bin/mktemp)"
     cltinstall="$(/usr/bin/mktemp)"
     shlogger "Create installer script: $cltinstall"
-    echo "/usr/sbin/softwareupdate --verbose --install" >"$workfile"
-    /usr/bin/awk '{print "\""$0"\""}' "$items" >>"$workfile"
-    /usr/bin/paste -s "$workfile" >"$cltinstall"
+
+    echo "#!/bin/bash" >"$cltinstall"
+    {
+        echo "items=("
+        /usr/bin/awk '{print "\""$0"\""}' "$items"
+        echo ")"
+    } >>"$cltinstall"
+
+    cat <<_SCT >>"$cltinstall"
+
+if [ "\$(/usr/sbin/softwareupdate --help 2>&1 | /usr/bin/grep -c 'agree-to-license')" != 0 ]; then
+    opt='--agree-to-license --verbose --install'
+else
+    opt='--verbose --install'
+fi
+
+for i in "\${items[@]}"; do
+   /usr/sbin/softwareupdate \$opt "\$i"
+   xcodeCommandLineToolsPath="\$(/usr/bin/xcode-select -p 2>/dev/null)"
+   if [ -n "\$xcodeCommandLineToolsPath" ]; then
+       break
+   fi
+done
+_SCT
 
     shlogger "Execute installer script: $cltinstall"
+    cat "$cltinstall"
     /bin/bash "$cltinstall"
+    shlogger "xcode-select -p: $(/usr/bin/xcode-select -p 2>&1)"
 
-    /bin/rm -f "$flag" "$cltinstall" "$items" "$workfile"
+    /bin/rm -f "$flag" "$cltinstall" "$items"
 
     shlogger "Done."
 }
