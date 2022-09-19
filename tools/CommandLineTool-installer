@@ -21,7 +21,7 @@ shlogger() {
 }
 
 InstallCommandLineTools() {
-    local flag items cltinstall kernelMajorVer
+    local flag items opt kernelMajorVer cmdlinetoolpath
 
     shlogger "Prepare getting command line tools..."
     flag="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
@@ -62,43 +62,26 @@ InstallCommandLineTools() {
     if [ ! -s "$items" ]; then
         shlogger "Not found Command line tools." 2
         /bin/rm -f "$items" "$flag"
-        exit 1
+        exit 0
     fi
 
-    cltinstall="$(/usr/bin/mktemp)"
-    shlogger "Create installer script: $cltinstall"
+    if [ "$(/usr/sbin/softwareupdate --help 2>&1 | /usr/bin/grep -c 'agree-to-license')" != 0 ]; then
+        opt="--agree-to-license"
+    else
+        opt=""
+    fi
 
-    echo "#!/bin/bash" >"$cltinstall"
-    {
-        echo "items=("
-        /usr/bin/awk '{print "\""$0"\""}' "$items"
-        echo ")"
-    } >>"$cltinstall"
+    while read -r item; do
+        shlogger "Install: $item"
+        /usr/sbin/softwareupdate "$opt" --verbose --install "$item"
+        cmdlinetoolpath="$(/usr/bin/xcode-select -p 2>/dev/null)"
+        if [ -n "$cmdlinetoolpath" ]; then
+            break
+        fi
+    done <"$items"
+    /bin/rm -f "$flag" "$items"
 
-    cat <<_SCT >>"$cltinstall"
-
-if [ "\$(/usr/sbin/softwareupdate --help 2>&1 | /usr/bin/grep -c 'agree-to-license')" != 0 ]; then
-    opt='--agree-to-license --verbose --install'
-else
-    opt='--verbose --install'
-fi
-
-for i in "\${items[@]}"; do
-   /usr/sbin/softwareupdate \$opt "\$i"
-   xcodeCommandLineToolsPath="\$(/usr/bin/xcode-select -p 2>/dev/null)"
-   if [ -n "\$xcodeCommandLineToolsPath" ]; then
-       break
-   fi
-done
-_SCT
-
-    shlogger "Execute installer script: $cltinstall"
-    cat "$cltinstall"
-    /bin/bash "$cltinstall"
-    shlogger "xcode-select -p: $(/usr/bin/xcode-select -p 2>&1)"
-
-    /bin/rm -f "$flag" "$cltinstall" "$items"
-
+    shlogger "Active developer directory: ${cmdlinetoolpath:-None}"
     shlogger "Done."
 }
 
