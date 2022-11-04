@@ -2,23 +2,45 @@
 # vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 # https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
 
-if [ ! -f "$1" ]; then exit 0; fi
-
-WORKDIR="$(mktemp -d)"
-SCRIPTNAME="$(basename "$1")"
-SERIAL="$(date +%Y%m%d-%H%M%S)"
-DEVELOPERID="$(security find-certificate -a | grep alis | grep ')' | grep "Developer ID Installer" | awk -F= '{print $2}' | tr -d \")"
-
-if [ -n "$DEVELOPERID" ]; then ADDSIGN="--sign"; fi
-mkdir -p "${WORKDIR}/${SCRIPTNAME}/Scripts"
-cp "$1" "${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall"
-chmod 755 "${WORKDIR}/${SCRIPTNAME}/Scripts/postinstall"
-
-pkgbuild --identifier "scripts.for.mac.manage.tools.${SCRIPTNAME}.pkg" \
-    --nopayload "$ADDSIGN" "$DEVELOPERID" \
-    --scripts "${WORKDIR}/${SCRIPTNAME}/Scripts" "${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg"
-
-if [ -e "${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg" ]; then
-    mv "${WORKDIR}/${SCRIPTNAME}-${SERIAL}.pkg" "$HOME/Desktop"
-    rm -rf "${WORKDIR}"
+if [ ! -f "$1" ]; then
+    exit 0
 fi
+
+workdir="$(mktemp -d)"
+root_dir="${workdir}/root"
+scriptname="$(basename "$1")"
+serialnum="$(date +%Y%m%d-%H%M%S)"
+developer_id="$(
+    security find-certificate -a \
+        | grep alis \
+        | grep ')' \
+        | grep "Developer ID Installer" \
+        | awk -F= '{print $2}' \
+        | tr -d \"
+)"
+
+mkdir -p "${workdir}/${scriptname}/Scripts" "$root_dir"
+cp "$1" "${workdir}/${scriptname}/Scripts/postinstall"
+chmod 755 "${workdir}/${scriptname}/Scripts/postinstall"
+
+if [ -n "$developer_id" ]; then
+    pkgbuild \
+        --sign "$developer_id" \
+        --identifier "scripts.for.mac.manage.tools.${scriptname}.pkg" \
+        --scripts "${workdir}/${scriptname}/Scripts" \
+        --nopayload \
+        --root "${root_dir}" \
+        "${workdir}/${scriptname}-${serialnum}.pkg"
+else
+    pkgbuild \
+        --identifier "scripts.for.mac.manage.tools.${scriptname}.pkg" \
+        --scripts "${workdir}/${scriptname}/Scripts" \
+        --nopayload \
+        --root "${root_dir}" \
+        "${workdir}/${scriptname}-${serialnum}.pkg"
+fi
+
+if [ -e "${workdir}/${scriptname}-${serialnum}.pkg" ]; then
+    mv "${workdir}/${scriptname}-${serialnum}.pkg" "$HOME/Desktop"
+fi
+rm -rf "${workdir}"
