@@ -1,6 +1,9 @@
 #!/bin/bash
 # vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 # https://github.com/taniguti/scripts_for_mac_manage/blob/master/LICENSE
+#
+# How to check if installer is signed.
+#  pkgutil --check-signature path/to/your.pkg
 
 if [ ! -f "$1" ]; then
     exit 0
@@ -12,9 +15,8 @@ scriptname="$(basename "$1")"
 serialnum="$(date +%Y%m%d-%H%M%S)"
 developer_id="$(
     security find-certificate -a \
+        | grep "3rd Party Mac Developer Installer" \
         | grep alis \
-        | grep ')' \
-        | grep "Developer ID Installer" \
         | awk -F= '{print $2}' \
         | tr -d \"
 )"
@@ -43,4 +45,5 @@ fi
 if [ -e "${workdir}/${scriptname}-${serialnum}.pkg" ]; then
     mv "${workdir}/${scriptname}-${serialnum}.pkg" "$HOME/Desktop"
 fi
+
 rm -rf "${workdir}"
