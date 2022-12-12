@@ -1,6 +1,8 @@
 #!/bin/bash
 # vim: set ts=2 sw=2 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
+# https://github.com/meterup/awdl_wifi_scripts
+
 if [ "$(uname -m)" = x86_64 ]; then
   exit 0
 fi
