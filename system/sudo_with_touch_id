@@ -1,0 +1,133 @@
+#!/bin/bash
+# vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+function patch_sudo() {
+    local pfile
+    pfile="$1"
+
+    patch --strip=1 \
+        --forward \
+        --directory=/etc/pam.d/ \
+        --reject-file="${pfile}.rej" \
+        --input="$pfile"
+}
+
+function install_cmake() {
+    local dl_url dmgfile workdir devfile cmake_dir dmg_dir_name cmake_file
+
+    cmake_dir="$1"
+    cmake_latest_version="$(
+        curl --location --disable --silent https://github.com/Kitware/CMake/releases/latest \
+            | tr ' ' '\n' \
+            | grep 'href="/Kitware/CMake/releases/tag/' \
+            | tr -d \"v \
+            | awk -F/ '{print $NF}' \
+            | head -1
+    )"
+
+    if [ -z "$cmake_latest_version" ]; then
+        cmake_file="FAILED"
+    else
+
+        dl_url="https://github.com/Kitware/CMake/releases/download/v${cmake_latest_version}/cmake-${cmake_latest_version}-macos-universal.dmg"
+        dmgfile="$(basename "$dl_url")"
+        workdir="$(mktemp -d)"
+
+        curl --location --disable --silent --output "${workdir}/${dmgfile}" "$dl_url"
+
+        if [ ! -f "${workdir}/${dmgfile}" ]; then
+            echo "Failed to download $dmgfile from $dl_url" >&2
+            rm -rf "$workdir"
+        else
+
+            devfile="$(hdiutil attach -nobrowse "${workdir}/${dmgfile}" \
+                | grep cmake \
+                | awk '{print $1}')"
+
+            dmg_dir_name="$(df | grep cmake | awk '{print $NF}')"
+
+            mkdir -p "$cmake_dir"
+
+            cp -a "${dmg_dir_name}/CMake.app" "$cmake_dir"
+
+            hdiutil detach -quiet "$devfile"
+            cmake_file="${cmake_dir}/CMake.app/Contents/bin/cmake"
+        fi
+    fi
+
+    echo "$cmake_file"
+}
+
+if [ ! -f /usr/lib/pam/pam_tid.so.2 ]; then
+    echo "Not found: /usr/lib/pam/pam_tid.so.2"
+    exit 0
+fi
+
+if [ "$(whoami)" != root ]; then
+    echo "Use me with sudo" >&2
+    exit 1
+fi
+
+tempdir="$(mktemp -d)"
+patch_file="${tempdir}/patch"
+
+cat <<_PATCH >"$patch_file"
+--- b/sudo	2022-08-26 21:59:02.000000000 +0900
++++ a/sudo	2022-08-26 22:00:49.000000000 +0900
+@@ -1,4 +1,5 @@
+ # sudo: auth account password session
++auth       sufficient     pam_tid.so
+ auth       sufficient     pam_smartcard.so
+ auth       required       pam_opendirectory.so
+ account    required       pam_permit.so
+_PATCH
+
+patch_sudo "$patch_file"
+
+if [ -x /opt/homebrew/bin/cmake ]; then
+    CMAKE=/opt/homebrew/bin/cmake
+else
+    CMAKE="$(install_cmake /tmp/$$)"
+    if [ -x "$CMAKE" ]; then
+        PATH=$(dirname "$CMAKE"):$PATH
+    else
+        CMAKE='N/A'
+    fi
+fi
+
+if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; then
+    repo_dir="/tmp/$$/pam_reattach"
+    git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
+    cd "$repo_dir" || exit 1
+
+    "$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+    make
+
+    if [ -f pam_reattach.so ]; then
+        if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+            if [ "$(md5 -q pam_reattach.so)" != "$(md5 -q /usr/local/lib/pam/pam_reattach.so)" ]; then
+                make install
+            fi
+        else
+            make install
+        fi
+    fi
+fi
+
+if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+    cat <<_PATCH >"$patch_file"
+--- b/sudo      2022-09-18 13:18:24.000000000 +0900
++++ a/sudo      2022-09-18 13:18:42.000000000 +0900
+@@ -1,4 +1,5 @@
+ # sudo: auth account password session
++auth       optional       pam_reattach.so
+ auth       sufficient     pam_tid.so
+ auth       sufficient     pam_smartcard.so
+ auth       required       pam_opendirectory.so
+_PATCH
+
+    patch_sudo "$patch_file"
+fi
+
+rm -rf "/tmp/$$" "$tempdir"
+exit 0
