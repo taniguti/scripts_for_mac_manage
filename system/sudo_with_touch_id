@@ -28,7 +28,6 @@ function install_cmake() {
     if [ -z "$cmake_latest_version" ]; then
         cmake_file="FAILED"
     else
-
         dl_url="https://github.com/Kitware/CMake/releases/download/v${cmake_latest_version}/cmake-${cmake_latest_version}-macos-universal.dmg"
         dmgfile="$(basename "$dl_url")"
         workdir="$(mktemp -d)"
