@@ -38,7 +38,6 @@ function install_cmake() {
             echo "Failed to download $dmgfile from $dl_url" >&2
             rm -rf "$workdir"
         else
-
             devfile="$(hdiutil attach -nobrowse "${workdir}/${dmgfile}" \
                 | grep cmake \
                 | awk '{print $1}')"
@@ -99,7 +98,7 @@ if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; th
     git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
     cd "$repo_dir" || exit 1
 
-    "$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+    "$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local -B "$repo_dir"
     make
 
     if [ -f pam_reattach.so ]; then
