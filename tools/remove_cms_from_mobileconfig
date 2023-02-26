@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# https://gist.github.com/jlehikoinen/28ec2336f82110829868931543b4ed95
+
+mfile="$1"
+if [ -f "${mfile:-"/x"}" ]; then
+    /usr/bin/security cms -D -i "$mfile" | /usr/bin/xmllint --format -
+fi
