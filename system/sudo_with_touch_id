@@ -17,12 +17,11 @@ function install_cmake() {
 
     cmake_dir="$1"
     cmake_latest_version="$(
-        curl --location --disable --silent https://github.com/Kitware/CMake/releases/latest \
-            | tr ' ' '\n' \
-            | grep 'href="/Kitware/CMake/releases/tag/' \
-            | tr -d \"v \
-            | awk -F/ '{print $NF}' \
-            | head -1
+        curl --location --disable --silent https://api.github.com/repos/Kitware/CMake/releases/latest \
+            | grep -w tag_name \
+            | tr -d '",' \
+            | awk '{print $NF}' \
+            | sed s/^v//
     )"
 
     if [ -z "$cmake_latest_version" ]; then
