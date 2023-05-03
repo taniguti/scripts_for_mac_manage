@@ -68,7 +68,9 @@ fi
 tempdir="$(mktemp -d)"
 patch_file="${tempdir}/patch"
 
-cat <<_PATCH >"$patch_file"
+if [ "$(grep -c pam_tid.so /etc/pam.d/sudo)" = 0 ]; then
+    echo "Will patching pam config of sudo..."
+    cat <<_PATCH >"$patch_file"
 --- b/sudo	2022-08-26 21:59:02.000000000 +0900
 +++ a/sudo	2022-08-26 22:00:49.000000000 +0900
 @@ -1,4 +1,5 @@
@@ -79,13 +81,19 @@ cat <<_PATCH >"$patch_file"
  account    required       pam_permit.so
 _PATCH
 
-patch_sudo "$patch_file"
+    patch_sudo "$patch_file"
+else
+    echo "Already configured pam config of sudo."
+fi
 
 if [ -x /opt/homebrew/bin/cmake ]; then
     CMAKE=/opt/homebrew/bin/cmake
+    echo "Found $CMAKE"
 else
+    echo "Not found cmake"
     CMAKE="$(install_cmake /tmp/$$)"
     if [ -x "$CMAKE" ]; then
+        echo "$CMAKE installed."
         PATH=$(dirname "$CMAKE"):$PATH
     else
         CMAKE='N/A'
@@ -93,6 +101,7 @@ else
 fi
 
 if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; then
+    echo "Start compiling pam_reattach..."
     repo_dir="/tmp/$$/pam_reattach"
     git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
     cd "$repo_dir" || exit 1
@@ -111,8 +120,10 @@ if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; th
     fi
 fi
 
-if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
-    cat <<_PATCH >"$patch_file"
+if [ "$(grep -c pam_reattach.so /etc/pam.d/sudo)" = 0 ]; then
+    echo "Will patching pam config of sudo for pam_reattach.so..."
+    if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+        cat <<_PATCH >"$patch_file"
 --- b/sudo      2022-09-18 13:18:24.000000000 +0900
 +++ a/sudo      2022-09-18 13:18:42.000000000 +0900
 @@ -1,4 +1,5 @@
@@ -123,8 +134,11 @@ if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
  auth       required       pam_opendirectory.so
 _PATCH
 
-    patch_sudo "$patch_file"
+        patch_sudo "$patch_file"
+    fi
+else
+    echo "Already configured pam config of sudo."
 fi
 
-rm -rf "/tmp/$$" "$tempdir"
+rm -rf "/tmp/$$" "$tempdir" /etc/pam.d/sudo.orig
 exit 0
