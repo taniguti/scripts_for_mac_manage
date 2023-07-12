@@ -86,11 +86,17 @@ InstallCommandLineTools() {
 }
 
 xcodeCommandLineToolsPath="$(/usr/bin/xcode-select -p 2>/dev/null)"
-if [ -z "$xcodeCommandLineToolsPath" ] \
-    || [ ! -d "$xcodeCommandLineToolsPath" ] \
-    || [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
+if [ -z "$xcodeCommandLineToolsPath" ]; then
+    shlogger "xcodeCommandLineToolsPath is not set."
+    InstallCommandLineTools
+elif [ ! -d "$xcodeCommandLineToolsPath" ]; then
+    shlogger "xcodeCommandLineToolsPath is set but it doesn't exist."
+    InstallCommandLineTools
+elif [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
+    shlogger "Not found: ${xcodeCommandLineToolsPath}/usr/bin/git"
     InstallCommandLineTools
 else
+    shlogger "xcodeCommandLineToolsPath: ${xcodeCommandLineToolsPath:-NULL}"
     shlogger "No need install command line tool."
 fi
 
