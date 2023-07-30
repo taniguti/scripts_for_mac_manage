@@ -95,6 +95,15 @@ elif [ ! -d "$xcodeCommandLineToolsPath" ]; then
 elif [ ! -x "${xcodeCommandLineToolsPath}/usr/bin/git" ]; then
     shlogger "Not found: ${xcodeCommandLineToolsPath}/usr/bin/git"
     InstallCommandLineTools
+elif [ "$xcodeCommandLineToolsPath" != "/Library/Developer/CommandLineTools" ]; then
+    shlogger "xcodeCommandLineToolsPath: ${xcodeCommandLineToolsPath}"
+    if /usr/bin/xcodebuild -license accept; then
+        shlogger "Did xcodebuild -license accept"
+    else
+        shlogger "Something wrong... install Command line tools in force."
+        InstallCommandLineTools
+        /usr/bin/xcode-select -s "/Library/Developer/CommandLineTools"
+    fi
 else
     shlogger "xcodeCommandLineToolsPath: ${xcodeCommandLineToolsPath:-NULL}"
     shlogger "No need install command line tool."
