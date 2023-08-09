@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set ts=4 sw=4 sts=0 et ft=sh fenc=utf-8 ff=unix :
 
-function patch_sudo() {
+patch_sudo() {
     local pfile
     pfile="$1"
 
@@ -12,7 +12,7 @@ function patch_sudo() {
         --input="$pfile"
 }
 
-function install_cmake() {
+install_cmake() {
     local dl_url dmgfile workdir devfile cmake_dir dmg_dir_name cmake_file
 
     cmake_dir="$1"
@@ -55,6 +55,44 @@ function install_cmake() {
     echo "$cmake_file"
 }
 
+install_pam_reattach() {
+    local CMAKE repo_dir
+
+    if [ -x /opt/homebrew/bin/cmake ]; then
+        CMAKE=/opt/homebrew/bin/cmake
+        echo "Found $CMAKE"
+    else
+        echo "Not found cmake"
+        CMAKE="$(install_cmake /tmp/$$)"
+        if [ -x "$CMAKE" ]; then
+            echo "$CMAKE installed."
+            PATH=$(dirname "$CMAKE"):$PATH
+        else
+            CMAKE='N/A'
+        fi
+    fi
+
+    if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; then
+        echo "Start compiling pam_reattach..."
+        repo_dir="/tmp/$$/pam_reattach"
+        git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
+        cd "$repo_dir" || exit 1
+
+        "$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local -B "$repo_dir"
+        make
+
+        if [ -f pam_reattach.so ]; then
+            if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+                if [ "$(md5 -q pam_reattach.so)" != "$(md5 -q /usr/local/lib/pam/pam_reattach.so)" ]; then
+                    make install
+                fi
+            else
+                make install
+            fi
+        fi
+    fi
+}
+
 if [ ! -f /usr/lib/pam/pam_tid.so.2 ]; then
     echo "Not found: /usr/lib/pam/pam_tid.so.2"
     exit 0
@@ -65,12 +103,15 @@ if [ "$(whoami)" != root ]; then
     exit 1
 fi
 
-tempdir="$(mktemp -d)"
-patch_file="${tempdir}/patch"
+kernel_version="$(uname -r | awk -F. '{print $1}')"
 
-if [ "$(grep -c pam_tid.so /etc/pam.d/sudo)" = 0 ]; then
-    echo "Will patching pam config of sudo..."
-    cat <<_PATCH >"$patch_file"
+if [ "$kernel_version" -lt 23 ]; then
+    tempdir="$(mktemp -d)"
+    patch_file="${tempdir}/patch"
+
+    if [ "$(grep -c pam_tid.so /etc/pam.d/sudo)" = 0 ]; then
+        echo "Will patching pam config of sudo..."
+        cat <<_PATCH >"$patch_file"
 --- b/sudo	2022-08-26 21:59:02.000000000 +0900
 +++ a/sudo	2022-08-26 22:00:49.000000000 +0900
 @@ -1,4 +1,5 @@
@@ -81,49 +122,18 @@ if [ "$(grep -c pam_tid.so /etc/pam.d/sudo)" = 0 ]; then
  account    required       pam_permit.so
 _PATCH
 
-    patch_sudo "$patch_file"
-else
-    echo "Already configured pam config of sudo."
-fi
-
-if [ -x /opt/homebrew/bin/cmake ]; then
-    CMAKE=/opt/homebrew/bin/cmake
-    echo "Found $CMAKE"
-else
-    echo "Not found cmake"
-    CMAKE="$(install_cmake /tmp/$$)"
-    if [ -x "$CMAKE" ]; then
-        echo "$CMAKE installed."
-        PATH=$(dirname "$CMAKE"):$PATH
+        patch_sudo "$patch_file"
     else
-        CMAKE='N/A'
+        echo "Already configured pam config of sudo."
     fi
-fi
 
-if [ "$CMAKE" != 'N/A' ] && [ -n "$(/usr/bin/xcode-select -p 2>/dev/null)" ]; then
-    echo "Start compiling pam_reattach..."
-    repo_dir="/tmp/$$/pam_reattach"
-    git clone https://github.com/fabianishere/pam_reattach "$repo_dir"
-    cd "$repo_dir" || exit 1
+    install_pam_reattach
 
-    "$CMAKE" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local -B "$repo_dir"
-    make
-
-    if [ -f pam_reattach.so ]; then
-        if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
-            if [ "$(md5 -q pam_reattach.so)" != "$(md5 -q /usr/local/lib/pam/pam_reattach.so)" ]; then
-                make install
-            fi
-        else
-            make install
-        fi
-    fi
-fi
-
-if [ "$(grep -c pam_reattach.so /etc/pam.d/sudo)" = 0 ]; then
     if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
-        echo "Will patching pam config of sudo for pam_reattach.so..."
-        cat <<_PATCH >"$patch_file"
+        if [ "$(grep -c pam_reattach.so /etc/pam.d/sudo)" = 0 ]; then
+            if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+                echo "Will patching pam config of sudo for pam_reattach.so..."
+                cat <<_PATCH >"$patch_file"
 --- b/sudo      2022-09-18 13:18:24.000000000 +0900
 +++ a/sudo      2022-09-18 13:18:42.000000000 +0900
 @@ -1,4 +1,5 @@
@@ -134,11 +144,25 @@ if [ "$(grep -c pam_reattach.so /etc/pam.d/sudo)" = 0 ]; then
  auth       required       pam_opendirectory.so
 _PATCH
 
-        patch_sudo "$patch_file"
+                patch_sudo "$patch_file"
+            fi
+        else
+            echo "Already configured pam config of sudo."
+        fi
     fi
+
+    rm -rf "/tmp/$$" "$tempdir" /etc/pam.d/sudo.orig
 else
-    echo "Already configured pam config of sudo."
+    # macOS 14 or later
+    touch /etc/pam.d/sudo_local
+    install_pam_reattach
+
+    if [ -f /usr/local/lib/pam/pam_reattach.so ]; then
+        echo "auth       optional       pam_reattach.so" >/etc/pam.d/sudo_local
+        echo "auth       sufficient     pam_tid.so" >>/etc/pam.d/sudo_local
+    else
+        echo "auth       sufficient     pam_tid.so" >/etc/pam.d/sudo_local
+    fi
 fi
 
-rm -rf "/tmp/$$" "$tempdir" /etc/pam.d/sudo.orig
 exit 0
