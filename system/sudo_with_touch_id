@@ -93,6 +93,14 @@ install_pam_reattach() {
     fi
 }
 
+chown root:wheel /etc/sudoers
+chmod 440 /etc/sudoers
+for f in $(/bin/ls /etc/sudoers.d); do
+    if [ -f "/etc/sudoers.d/${f}" ]; then
+        chmod 440 "/etc/sudoers.d/${f}"
+    fi
+done
+
 if [ ! -f /usr/lib/pam/pam_tid.so.2 ]; then
     echo "Not found: /usr/lib/pam/pam_tid.so.2"
     exit 0
