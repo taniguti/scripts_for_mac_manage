@@ -1,0 +1,17 @@
+#!/bin/bash
+# vim: set ts=2 sw=2 sts=0 et ft=sh fenc=utf-8 ff=unix :
+
+#https://flaky.build/built-in-workaround-for-applications-hiding-under-the-macbook-pro-notch
+# https://apple.stackexchange.com/questions/406316/can-the-spacing-of-menu-bar-apps-be-modified-in-macos-big-sur-and-later/465674?newreg=5da3b70525e34d009feb0f558a885e15
+
+
+if [ $(whoami) = root ]; then
+  echo "Do not use this as root."
+  exit 0
+fi
+
+num=$1 # 0-6
+
+defaults -currentHost write -globalDomain NSStatusItemSelectionPadding -int $num
+defaults -currentHost write -globalDomain NSStatusItemSpacing -int $num
+killall -KILL SystemUIServer
